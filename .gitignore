@@ -1,4 +1,4 @@
-credentials/credentials/
-.env.local
+node_modules/
+.next/
 credentials/
 .env.local
