@@ -1,0 +1,10 @@
+﻿@import "tailwindcss";
+
+/* Optional: if you want a class-based fade instead of data-attr */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+.animate-fadeIn { animation: fadeIn 700ms ease-out forwards }
+
+/* your custom globals below */
+:root { 
+  color-scheme: dark; 
+}

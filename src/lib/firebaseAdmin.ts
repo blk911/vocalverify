@@ -66,7 +66,7 @@ if (!admin.apps.length) {
         clientEmail: creds.clientEmail,
         privateKey: creds.privateKey,
       }),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET || `${creds.projectId}.appspot.com`,
     });
   } catch (e: any) {
     // Surface a concise error in server logs; upstream routes can report failure
