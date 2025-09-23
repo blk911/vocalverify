@@ -16,24 +16,54 @@ export async function POST(req: Request) {
 		const { uploadId, userId } = await req.json().catch(() => ({}));
 		if (!uploadId || !userId) return badRequest({ ok: false, error: "Missing uploadId or userId", code: "MISSING_FIELDS" });
 
-		const tmpPath = `voices/tmp/${uploadId}.webm`;
+		// Move file from temporary to permanent storage
+		const tempPath = `voices/tmp/${uploadId}.webm`;
 		const finalPath = `voices/final/${userId}.webm`;
-		const tmpFile = bucket.file(tmpPath);
-		const finalFile = bucket.file(finalPath);
 
-		const [exists] = await tmpFile.exists();
-		if (!exists) return badRequest({ ok: false, error: "Upload not found", code: "NOT_FOUND" });
+		try {
+			// Check if temp file exists
+			const tempFile = bucket.file(tempPath);
+			const [exists] = await tempFile.exists();
+			
+			if (!exists) {
+				return Response.json({ 
+					ok: false, 
+					error: "Upload not found", 
+					code: "UPLOAD_NOT_FOUND" 
+				}, { status: 404 });
+			}
 
-		await tmpFile.move(finalPath);
+			// Move file to final location
+			const finalFile = bucket.file(finalPath);
+			await tempFile.move(finalFile);
 
-		// Score stub 0.90 - 0.99
-		const score = Math.round((0.90 + Math.random() * 0.09) * 1000) / 1000;
-		const passed = score >= 0.95;
+			// Clean up temp file (move already deletes source)
+			console.log("Voice file committed to permanent storage", { 
+				uploadId, 
+				userId, 
+				tempPath, 
+				finalPath 
+			});
 
-		// Cleanup: delete any leftover tmp file (should be moved, but guard)
-		try { await tmpFile.delete({ ignoreNotFound: true } as any); } catch {}
+			// Score stub 0.90 - 0.99 (can be replaced with real voice analysis)
+			const score = Math.round((0.90 + Math.random() * 0.09) * 1000) / 1000;
+			const passed = score >= 0.95;
 
-		return Response.json({ ok: true, score, passed });
+			return Response.json({ 
+				ok: true, 
+				score, 
+				passed,
+				finalPath,
+				message: "Voice processing completed and stored permanently"
+			});
+		} catch (storageError) {
+			console.error("Firebase Storage commit error:", storageError);
+			return Response.json({ 
+				ok: false, 
+				error: "Storage commit failed", 
+				code: "STORAGE_COMMIT_ERROR" 
+			}, { status: 500 });
+		}
 	} catch (e: any) {
 		return Response.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
 	}

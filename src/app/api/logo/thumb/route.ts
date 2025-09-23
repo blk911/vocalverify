@@ -9,8 +9,6 @@ export async function GET() {
     // Try to get the latest thumb logo from Firebase Storage
     const [files] = await bucket.getFiles({
       prefix: 'logos/thumb_',
-      orderBy: 'timeCreated',
-      desc: true,
       maxResults: 1
     });
 
@@ -18,7 +16,7 @@ export async function GET() {
       const logoFile = files[0];
       const [logoBuffer] = await logoFile.download();
       
-      return new NextResponse(logoBuffer, {
+      return new NextResponse(logoBuffer as any, {
         headers: {
           'Content-Type': logoFile.metadata.contentType || 'image/png',
           'Cache-Control': 'public, max-age=31536000',
@@ -29,7 +27,7 @@ export async function GET() {
     // Fallback to geometric logo if no logo found in storage
     const buffer = Buffer.from(THUMB_LOGO, 'base64');
     
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as any, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': 'public, max-age=31536000',

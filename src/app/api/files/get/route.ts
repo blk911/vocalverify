@@ -35,8 +35,6 @@ export async function GET(req: NextRequest) {
     // Get the latest file for this member and type
     const [files] = await bucket.getFiles({
       prefix: `${fileType}s/${memberCode}/`,
-      orderBy: 'timeCreated',
-      desc: true,
       maxResults: 1
     });
 
@@ -50,7 +48,7 @@ export async function GET(req: NextRequest) {
     const file = files[0];
     const [fileBuffer] = await file.download();
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(fileBuffer as any, {
       headers: {
         'Content-Type': file.metadata.contentType || 'application/octet-stream',
         'Cache-Control': 'public, max-age=31536000',
@@ -65,6 +63,11 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+
+
+
+
 
 
 

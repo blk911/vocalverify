@@ -9,8 +9,6 @@ export async function GET() {
     // Try to get the latest insert logo from Firebase Storage
     const [files] = await bucket.getFiles({
       prefix: 'logos/insert_',
-      orderBy: 'timeCreated',
-      desc: true,
       maxResults: 1
     });
 
@@ -18,7 +16,7 @@ export async function GET() {
       const logoFile = files[0];
       const [logoBuffer] = await logoFile.download();
       
-      return new NextResponse(logoBuffer, {
+      return new NextResponse(logoBuffer as any, {
         headers: {
           'Content-Type': logoFile.metadata.contentType || 'image/png',
           'Cache-Control': 'public, max-age=31536000',
@@ -29,7 +27,7 @@ export async function GET() {
     // Fallback to placeholder if no logo found
     const buffer = Buffer.from(PLACEHOLDER_LOGO, 'base64');
     
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as any, {
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'public, max-age=31536000',
