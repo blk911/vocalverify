@@ -2,3 +2,4 @@ node_modules/
 .next/
 credentials/
 .env.local
+service-account.json
