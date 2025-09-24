@@ -1,120 +1,56 @@
-// src/app/api/voice/upload/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import { bucket } from "@/lib/firebaseAdmin";
+import { NextResponse } from "next/server";
+import { storage } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+// optional for large files: export const maxDuration = 60;
 
-// simple in-mem rate limit (userId → uploads in last minute)
-const uploadCounts = new Map<string, { count: number; ts: number }>();
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     console.log('Voice upload API called');
-    console.log('Content-Type:', req.headers.get('content-type'));
     
+    const { searchParams } = new URL(req.url);
+    const uploadId = searchParams.get("uploadId");
+    if (!uploadId) {
+      console.error('Missing uploadId in query params');
+      return NextResponse.json({ error: "missing uploadId" }, { status: 400 });
+    }
+
     const form = await req.formData();
-    const userId = form.get("userId")?.toString();
-    const file = form.get("file") as File | null;
-    
-    console.log('Form data received:', {
-      userId,
-      fileName: file?.name,
-      fileSize: file?.size,
-      fileType: file?.type
+    const file = form.get("audio") as File | null; // MUST match client key
+    if (!file) {
+      console.error('Missing audio file in form data');
+      return NextResponse.json({ error: "missing audio" }, { status: 400 });
+    }
+
+    console.log('Uploading file:', {
+      uploadId,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
     });
 
-    if (!userId) {
-      return NextResponse.json(
-        { ok: false, error: "Missing userId", code: "NO_USERID" },
-        { status: 400 }
-      );
-    }
-    if (!file) {
-      return NextResponse.json(
-        { ok: false, error: "Missing file", code: "NO_FILE" },
-        { status: 400 }
-      );
-    }
+    const arrayBuf = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuf);
 
-    // ---- rate limiting ----
-    const now = Date.now();
-    const rec = uploadCounts.get(userId);
-    if (rec && now - rec.ts < 60_000 && rec.count >= 3) {
-      return NextResponse.json(
-        { ok: false, error: "Rate limit exceeded", code: "RATE_LIMIT" },
-        { status: 429 }
-      );
-    }
-    if (!rec || now - rec.ts > 60_000) {
-      uploadCounts.set(userId, { count: 1, ts: now });
-    } else {
-      rec.count++;
-      uploadCounts.set(userId, rec);
-    }
+    const bucket = storage.bucket(); // ensure env has FIREBASE_STORAGE_BUCKET
+    const path = `voice/${uploadId}.webm`;
+    const gcsFile = bucket.file(path);
 
-    // ---- validation ----
-    if (file.type !== "audio/webm") {
-      return NextResponse.json(
-        { ok: false, error: "Invalid mime type", code: "INVALID_MIME" },
-        { status: 400 }
-      );
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { ok: false, error: "File too large", code: "FILE_TOO_LARGE" },
-        { status: 400 }
-      );
-    }
+    await gcsFile.save(buffer, {
+      resumable: false,
+      contentType: file.type || "audio/webm",
+      metadata: { cacheControl: "private, max-age=0" },
+    });
 
-    // ---- upload to Firebase Storage ----
-    const uploadId = uuidv4();
-    const destPath = `voices/tmp/${uploadId}.webm`;
+    console.log('File uploaded successfully:', { uploadId, path });
 
-    try {
-      // Convert File to Buffer
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      // Upload to Firebase Storage
-      const fileRef = bucket.file(destPath);
-      await fileRef.save(buffer, {
-        metadata: {
-          contentType: file.type,
-          metadata: {
-            userId: userId,
-            originalName: file.name,
-            uploadId: uploadId
-          }
-        }
-      });
-
-      console.log("Voice file uploaded to Firebase Storage", { 
-        userId, 
-        uploadId, 
-        size: file.size,
-        fileName: file.name,
-        fileType: file.type,
-        destPath
-      });
-
-      return NextResponse.json({
-        ok: true,
-        uploadId,
-        path: destPath,
-        message: "Voice file uploaded successfully to Firebase Storage"
-      });
-    } catch (storageError) {
-      console.error("Firebase Storage upload error:", storageError);
-      return NextResponse.json(
-        { ok: false, error: "Firebase Storage upload failed", code: "STORAGE_ERROR" },
-        { status: 500 }
-      );
-    }
-  } catch (err: any) {
-    console.error("Upload error", err);
+    // Return the canonical storage path so commit can verify it
+    return NextResponse.json({ path });
+  } catch (error: any) {
+    console.error('Upload error:', error);
     return NextResponse.json(
-      { ok: false, error: "Upload failed", code: "SERVER_ERROR" },
+      { error: "Upload failed", code: "SERVER_ERROR" },
       { status: 500 }
     );
   }

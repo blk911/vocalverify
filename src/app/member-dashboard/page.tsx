@@ -876,54 +876,47 @@ function MemberDashboardContent() {
                   <button
                     onClick={async () => {
                       try {
-                        // Show loading state
                         console.log('Starting voice upload process...');
                         
-                        // Upload the recording to temporary storage
-                        const formData = new FormData();
-                        formData.append('file', recordedBlob, `${showVoiceModal}_${memberCode}.webm`);
-                        formData.append('userId', memberCode);
+                        // STEP 1: INIT - ask server to create an upload slot
+                        console.log('Step 1: Initializing upload...');
+                        const initRes = await fetch("/api/voice/init", { method: "POST" });
+                        if (!initRes.ok) throw new Error("init failed");
+                        const { uploadId } = await initRes.json();
+                        console.log('Step 1: Upload ID generated:', uploadId);
 
-                        console.log('Sending voice recording:', {
-                          showVoiceModal,
-                          memberCode,
-                          blobSize: recordedBlob.size,
-                          blobType: recordedBlob.type
+                        // STEP 2: UPLOAD - send the audio blob under the EXACT field name the server expects
+                        console.log('Step 2: Uploading audio file...');
+                        const fd = new FormData();
+                        fd.append("audio", recordedBlob, "voice.webm"); // MUST match server field name
+                        const upRes = await fetch(`/api/voice/upload?uploadId=${encodeURIComponent(uploadId)}`, {
+                          method: "POST",
+                          body: fd,
                         });
-
-                        console.log('Step 1: Uploading to temporary storage...');
-                        const uploadResponse = await fetch('/api/voice/upload', {
-                          method: 'POST',
-                          body: formData
-                          // Don't set Content-Type header - let browser set it with boundary
-                        });
-                        const uploadData = await uploadResponse.json();
-
-                        if (!uploadData.ok) {
-                          throw new Error(`Upload failed: ${uploadData.error}`);
+                        if (!upRes.ok) {
+                          const errorData = await upRes.json();
+                          throw new Error(`upload failed: ${errorData.error}`);
                         }
-                        console.log('Step 1: Upload successful', uploadData);
+                        const uploadData = await upRes.json();
+                        console.log('Step 2: Upload successful', uploadData);
 
-                        // Commit the recording to permanent storage
-                        console.log('Step 2: Committing to permanent storage...');
-                        const commitResponse = await fetch('/api/voice/commit', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            uploadId: uploadData.uploadId,
-                            userId: memberCode
-                          })
+                        // STEP 3: COMMIT - finalize + create DB record
+                        console.log('Step 3: Committing to database...');
+                        const commitRes = await fetch("/api/voice/commit", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ uploadId }),
                         });
-                        const commitData = await commitResponse.json();
-
-                        if (!commitData.ok) {
-                          throw new Error(`Commit failed: ${commitData.error}`);
+                        if (!commitRes.ok) {
+                          const errorData = await commitRes.json();
+                          throw new Error(`commit failed: ${errorData.error}`);
                         }
-                        console.log('Step 2: Commit successful', commitData);
+                        const commitData = await commitRes.json();
+                        console.log('Step 3: Commit successful', commitData);
 
                         // Update user profile with voice recording
-                        console.log('Step 3: Updating user profile...');
-                        const voiceUrl = `voices/final/${memberCode}.webm`;
+                        console.log('Step 4: Updating user profile...');
+                        const voiceUrl = `voice/${uploadId}.webm`;
                         const profileResponse = await fetch('/api/user/profile', {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
