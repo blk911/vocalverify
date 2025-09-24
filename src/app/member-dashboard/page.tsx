@@ -889,9 +889,17 @@ function MemberDashboardContent() {
                         console.log('Step 2: Uploading audio file...');
                         const fd = new FormData();
                         fd.append("audio", recordedBlob, "voice.webm"); // MUST match server field name
+                        
+                        console.log('FormData constructed:', {
+                          hasAudio: fd.has("audio"),
+                          blobSize: recordedBlob.size,
+                          blobType: recordedBlob.type
+                        });
+                        
                         const upRes = await fetch(`/api/voice/upload?uploadId=${encodeURIComponent(uploadId)}`, {
                           method: "POST",
                           body: fd,
+                          // Don't set Content-Type - let browser set it with boundary
                         });
                         if (!upRes.ok) {
                           const errorData = await upRes.json();
@@ -971,8 +979,21 @@ function MemberDashboardContent() {
                         }
                       } catch (error) {
                         console.error('Error saving voice recording:', error);
+                        
+                        // Show specific error messages based on error type
+                        let errorMessage = 'Error saving voice recording: ';
+                        if (error.message.includes('init failed')) {
+                          errorMessage += 'Failed to initialize upload. Please try again.';
+                        } else if (error.message.includes('upload failed')) {
+                          errorMessage += 'Failed to upload audio file. Please check your connection.';
+                        } else if (error.message.includes('commit failed')) {
+                          errorMessage += 'Failed to save recording. Please try again.';
+                        } else {
+                          errorMessage += error.message;
+                        }
+                        
                         setShowErrorModal(true);
-                        setErrorMessage('Error saving voice recording: ' + error.message);
+                        setErrorMessage(errorMessage);
                       }
                     }}
                     className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
