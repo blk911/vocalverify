@@ -20,7 +20,7 @@ function getFirebaseApp() {
       const serviceAccount = require('../../service-account.json');
       return {
         credential: cert(serviceAccount as any),
-        storageBucket: 'amihuman-production.firebasestorage.app'
+        storageBucket: 'trustgame-8lerq.firebasestorage.app'
       };
     })();
 

@@ -8,16 +8,24 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     console.log('Voice upload API called');
+    console.log('Request URL:', req.url);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
     const { searchParams } = new URL(req.url);
     const uploadId = searchParams.get("uploadId");
+    console.log('Upload ID from query params:', uploadId);
+    
     if (!uploadId) {
       console.error('Missing uploadId in query params');
       return NextResponse.json({ error: "missing uploadId" }, { status: 400 });
     }
 
     const form = await req.formData();
+    console.log('Form data keys:', Array.from(form.keys()));
+    
     const file = form.get("audio") as File | null; // MUST match client key
+    console.log('Audio file found:', !!file, file?.name, file?.size);
+    
     if (!file) {
       console.error('Missing audio file in form data');
       return NextResponse.json({ error: "missing audio" }, { status: 400 });
@@ -33,8 +41,12 @@ export async function POST(req: Request) {
     const arrayBuf = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuf);
 
+    console.log('Firebase Storage connection test...');
     const bucket = storage.bucket(); // ensure env has FIREBASE_STORAGE_BUCKET
+    console.log('Bucket name:', bucket.name);
+    
     const path = `voice/${uploadId}.webm`;
+    console.log('Target path:', path);
     const gcsFile = bucket.file(path);
 
     await gcsFile.save(buffer, {
