@@ -106,15 +106,10 @@ export async function POST(req: NextRequest) {
       });
     } catch (storageError) {
       console.error("Firebase Storage upload error:", storageError);
-      
-      // TEMPORARY FIX: Simulate successful upload for development
-      console.log("Simulating successful upload for development");
-      return NextResponse.json({
-        ok: true,
-        uploadId,
-        path: destPath,
-        message: "Voice file uploaded successfully (simulated)"
-      });
+      return NextResponse.json(
+        { ok: false, error: "Firebase Storage upload failed", code: "STORAGE_ERROR" },
+        { status: 500 }
+      );
     }
   } catch (err: any) {
     console.error("Upload error", err);

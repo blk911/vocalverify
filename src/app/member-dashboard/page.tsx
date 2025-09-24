@@ -876,6 +876,9 @@ function MemberDashboardContent() {
                   <button
                     onClick={async () => {
                       try {
+                        // Show loading state
+                        console.log('Starting voice upload process...');
+                        
                         // Upload the recording to temporary storage
                         const formData = new FormData();
                         formData.append('file', recordedBlob, `${showVoiceModal}_${memberCode}.webm`);
@@ -888,6 +891,7 @@ function MemberDashboardContent() {
                           blobType: recordedBlob.type
                         });
 
+                        console.log('Step 1: Uploading to temporary storage...');
                         const uploadResponse = await fetch('/api/voice/upload', {
                           method: 'POST',
                           body: formData
@@ -896,10 +900,12 @@ function MemberDashboardContent() {
                         const uploadData = await uploadResponse.json();
 
                         if (!uploadData.ok) {
-                          throw new Error(uploadData.error);
+                          throw new Error(`Upload failed: ${uploadData.error}`);
                         }
+                        console.log('Step 1: Upload successful', uploadData);
 
                         // Commit the recording to permanent storage
+                        console.log('Step 2: Committing to permanent storage...');
                         const commitResponse = await fetch('/api/voice/commit', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
@@ -911,10 +917,12 @@ function MemberDashboardContent() {
                         const commitData = await commitResponse.json();
 
                         if (!commitData.ok) {
-                          throw new Error(commitData.error);
+                          throw new Error(`Commit failed: ${commitData.error}`);
                         }
+                        console.log('Step 2: Commit successful', commitData);
 
                         // Update user profile with voice recording
+                        console.log('Step 3: Updating user profile...');
                         const voiceUrl = `voices/final/${memberCode}.webm`;
                         const profileResponse = await fetch('/api/user/profile', {
                           method: 'PUT',
@@ -927,43 +935,46 @@ function MemberDashboardContent() {
                         });
 
                         if (profileResponse.ok) {
-                                 // Update local state and advance step
-                                 if (showVoiceModal === 'primary') {
-                                   setPrimaryVoicePrint(prev => ({ 
-                                     ...prev, 
-                                     voiceFile: recordedBlob, 
-                                     status: 'completed',
-                                     confirmed: true 
-                                   }));
-                                   setCurrentStep(2); // Move to Profile Confirm step
-                                 } else if (showVoiceModal === 'profile') {
-                                   setProfileConfirmPrint(prev => ({ 
-                                     ...prev, 
-                                     voiceFile: recordedBlob, 
-                                     status: 'completed',
-                                     confirmed: true 
-                                   }));
-                                   setCurrentStep(3); // Move to Phone step
-                                 } else if (showVoiceModal === 'phone') {
-                                   setPhoneVoicePrint(prev => ({ 
-                                     ...prev, 
-                                     voiceFile: recordedBlob, 
-                                     status: 'completed',
-                                     confirmed: true 
-                                   }));
-                                   setPhoneConfirmed(true); // Complete phone step
-                                 }
+                          console.log('Step 3: Profile update successful');
                           
+                          // Update local state and advance step
+                          if (showVoiceModal === 'primary') {
+                            setPrimaryVoicePrint(prev => ({ 
+                              ...prev, 
+                              voiceFile: recordedBlob, 
+                              status: 'completed',
+                              confirmed: true 
+                            }));
+                            setCurrentStep(2); // Move to Profile Confirm step
+                          } else if (showVoiceModal === 'profile') {
+                            setProfileConfirmPrint(prev => ({ 
+                              ...prev, 
+                              voiceFile: recordedBlob, 
+                              status: 'completed',
+                              confirmed: true 
+                            }));
+                            setCurrentStep(3); // Move to Phone step
+                          } else if (showVoiceModal === 'phone') {
+                            setPhoneVoicePrint(prev => ({ 
+                              ...prev, 
+                              voiceFile: recordedBlob, 
+                              status: 'completed',
+                              confirmed: true 
+                            }));
+                            setPhoneConfirmed(true); // Complete phone step
+                          }
+                      
                           // Reload member data to get updated voice URL
                           loadMemberData();
                           
-                                 // Close modal and reset state immediately
-                                 setRecordedBlob(null);
-                                 setShowVoiceModal(null);
-                                 
-                                 // No toast - seamless flow
+                          // Close modal and reset state immediately
+                          setRecordedBlob(null);
+                          setShowVoiceModal(null);
+                          
+                          console.log('Voice recording process completed successfully!');
                         } else {
-                          throw new Error('Failed to update profile');
+                          const errorData = await profileResponse.json();
+                          throw new Error(`Profile update failed: ${errorData.error || 'Unknown error'}`);
                         }
                       } catch (error) {
                         console.error('Error saving voice recording:', error);

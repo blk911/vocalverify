@@ -58,19 +58,11 @@ export async function POST(req: Request) {
 			});
 		} catch (storageError) {
 			console.error("Firebase Storage commit error:", storageError);
-			
-			// TEMPORARY FIX: Simulate successful commit for development
-			console.log("Simulating successful commit for development");
-			const score = Math.round((0.90 + Math.random() * 0.09) * 1000) / 1000;
-			const passed = score >= 0.95;
-			
 			return Response.json({ 
-				ok: true, 
-				score, 
-				passed,
-				finalPath: `voices/final/${userId}.webm`,
-				message: "Voice processing completed (simulated)"
-			});
+				ok: false, 
+				error: "Firebase Storage commit failed", 
+				code: "STORAGE_ERROR" 
+			}, { status: 500 });
 		}
 	} catch (e: any) {
 		return Response.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
