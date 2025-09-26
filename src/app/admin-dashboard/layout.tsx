@@ -1,7 +1,6 @@
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <script src="https://cdn.tailwindcss.com"></script>
+    <div className="admin-layout">
       {children}
     </div>
   );
