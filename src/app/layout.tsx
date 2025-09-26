@@ -6,7 +6,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script src="https://cdn.tailwindcss.com"></script>
       </head>
-      <body style={{ fontFamily: "system-ui, sans-serif", margin: 0, background: "#f7f7f8" }}>
+      <body className="font-sans m-0 bg-gray-50">
         {children}
       </body>
     </html>
