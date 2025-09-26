@@ -16,7 +16,7 @@ export default function AdminPage() {
       setError(null);
       
       // Get all members by checking known member codes
-      const memberCodes = ['77777', '9999']; // Add more as needed
+      const memberCodes = ['77777']; // Only show members with data
       const allMembers = [];
       
       for (const memberCode of memberCodes) {
