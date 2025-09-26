@@ -1,57 +1,47 @@
-// src/lib/firebaseAdmin.ts
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
+import { cert, getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
-// Lazy initialization to avoid build-time errors
-let app: any = null;
+function getApp() {
+  if (getApps().length) return getApps()[0];
 
-function getFirebaseApp() {
-  if (!app) {
-    const firebaseAdminConfig = process.env.FIREBASE_PROJECT_ID ? {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    const json = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+    return initializeApp({
+      credential: cert(json),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    });
+  }
+
+  if (
+    process.env.FIREBASE_PROJECT_ID &&
+    process.env.FIREBASE_CLIENT_EMAIL &&
+    process.env.FIREBASE_PRIVATE_KEY
+  ) {
+    return initializeApp({
       credential: cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      } as any),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-    } : (() => {
-      // Fallback to local service account for development
-      const serviceAccount = require('../../service-account.json');
-      return {
-        credential: cert(serviceAccount as any),
-        storageBucket: 'trustgame-8lerq.firebasestorage.app'
-      };
-    })();
-
-    app = getApps().length === 0 ? initializeApp(firebaseAdminConfig) : getApps()[0];
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
+      }),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    });
   }
-  return app;
+
+  // Fallback to service account file for local development
+  try {
+    const serviceAccount = require("../../credentials/service-account.json");
+    return initializeApp({
+      credential: cert(serviceAccount),
+      storageBucket: "trustgame-8lerq.appspot.com",
+    });
+  } catch (error) {
+    console.log("Service account file not found, using environment variables");
+  }
+
+  throw new Error("Firebase Admin credentials missing");
 }
 
-// Lazy exports to avoid build-time initialization
-export const db = new Proxy({} as any, {
-  get(target, prop) {
-    return getFirestore(getFirebaseApp())[prop];
-  }
-});
-
-export const adminStorage = new Proxy({} as any, {
-  get(target, prop) {
-    return getStorage(getFirebaseApp())[prop];
-  }
-});
-
-export const bucket = new Proxy({} as any, {
-  get(target, prop) {
-    return getStorage(getFirebaseApp()).bucket()[prop];
-  }
-});
-
-export const storage = new Proxy({} as any, {
-  get(target, prop) {
-    return getStorage(getFirebaseApp())[prop];
-  }
-});
-
-export const firebaseCredSource = process.env.FIREBASE_PROJECT_ID ? 'environment' : 'service-account.json';
+const app = getApp();
+export const db = getFirestore(app);
+export const storage = getStorage(app);

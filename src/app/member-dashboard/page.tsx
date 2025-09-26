@@ -20,6 +20,8 @@ function MemberDashboardContent() {
   const [showVoicePrompts, setShowVoicePrompts] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   // Voice print states
   const [voicePrints, setVoicePrints] = useState({
@@ -61,6 +63,31 @@ function MemberDashboardContent() {
           ...prev,
           name: data.profile.fullName || ""
         }));
+
+        // Load completion status from database
+        if (data.profile.profileSteps) {
+          const steps = data.profile.profileSteps;
+          setPrimaryVoicePrint(prev => ({
+            ...prev,
+            status: steps.primaryVoice ? "completed" : "pending",
+            confirmed: steps.primaryVoice
+          }));
+          setProfileConfirmPrint(prev => ({
+            ...prev,
+            status: steps.profileConfirm ? "completed" : "pending",
+            confirmed: steps.profileConfirm
+          }));
+          setPhoneVoicePrint(prev => ({
+            ...prev,
+            status: steps.phoneVoice ? "completed" : "pending",
+            confirmed: steps.phoneVoice
+          }));
+        }
+
+        // Set current step from database
+        if (data.profile.currentStep) {
+          setCurrentStep(data.profile.currentStep);
+        }
         
         // Check if first time login
         const isFirstLogin = localStorage.getItem(`aih.firstLogin.${memberCode}`) !== 'true';
@@ -148,7 +175,8 @@ function MemberDashboardContent() {
 
   const handleVoicePrintRecord = async (personNumber, name) => {
     if (!name.trim()) {
-      alert('Please enter the person\'s name first');
+      setErrorMessage('Please enter the person\'s name first');
+      setShowErrorModal(true);
       return;
     }
 
@@ -208,7 +236,8 @@ function MemberDashboardContent() {
             setCompletionStatus(saveData.completionStatus);
             setProgress(saveData.progress);
             
-            alert(`Voice print for ${name} recorded successfully!`);
+            setSuccessMessage(`Voice print for ${name} recorded successfully!`);
+            setShowSuccessModal(true);
           }
         }
         
@@ -236,7 +265,8 @@ function MemberDashboardContent() {
       
     } catch (error) {
       console.error('Error recording voice print:', error);
-      alert('Error recording voice print. Please try again.');
+      setErrorMessage('Error recording voice print. Please try again.');
+      setShowErrorModal(true);
       setIsRecording(false);
       setCountdown(0);
     }
@@ -248,7 +278,8 @@ function MemberDashboardContent() {
       const audio = new Audio(voicePrint.voiceFile);
       audio.play();
     } else {
-      alert('No voice recording found for this person');
+      setErrorMessage('No voice recording found for this person');
+      setShowErrorModal(true);
     }
   };
 
@@ -295,10 +326,12 @@ function MemberDashboardContent() {
       const audio = new Audio(voiceUrl);
       audio.play().catch(error => {
         console.error('Error playing audio:', error);
-        alert('Error playing voice recording. Please try recording again.');
+        setErrorMessage('Error playing voice recording. Please try recording again.');
+        setShowErrorModal(true);
       });
     } else {
-      alert('No voice recording found. Please record your voice first.');
+      setErrorMessage('No voice recording found. Please record your voice first.');
+      setShowErrorModal(true);
     }
   };
 
@@ -329,7 +362,12 @@ function MemberDashboardContent() {
                   <div className="space-y-4">
                            {/* Primary Voice Print - Step 1 */}
                            <div className={`p-4 rounded-lg border-2 ${currentStep === 1 ? 'border-blue-500 bg-blue-50' : primaryVoicePrint.confirmed ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
-                             <label className="block text-sm font-medium text-slate-700 mb-1">First, Last Name as Registered</label>
+                             <div className="flex items-center justify-between mb-1">
+                               <label className="block text-sm font-medium text-slate-700">First, Last Name as Registered</label>
+                               {primaryVoicePrint.confirmed && (
+                                 <span className="text-green-600 text-lg">✓</span>
+                               )}
+                             </div>
                              <input
                                type="text"
                                placeholder="Enter your first and last name"
@@ -379,7 +417,12 @@ function MemberDashboardContent() {
 
                            {/* Profile Confirm Print - Step 2 */}
                            <div className={`p-4 rounded-lg border-2 ${currentStep === 2 ? 'border-blue-500 bg-blue-50' : profileConfirmPrint.confirmed ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
-                             <label className="block text-sm font-medium text-slate-700 mb-1">Profile Confirm Print</label>
+                             <div className="flex items-center justify-between mb-1">
+                               <label className="block text-sm font-medium text-slate-700">Profile Confirm Print</label>
+                               {profileConfirmPrint.confirmed && (
+                                 <span className="text-green-600 text-lg">✓</span>
+                               )}
+                             </div>
                              <input
                                type="text"
                                placeholder="Enter your first and last name"
@@ -430,7 +473,12 @@ function MemberDashboardContent() {
                   
                          {/* Phone Number - Step 3 */}
                          <div className={`p-4 rounded-lg border-2 ${currentStep === 3 ? 'border-blue-500 bg-blue-50' : phoneConfirmed ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
-                           <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+                           <div className="flex items-center justify-between mb-1">
+                             <label className="block text-sm font-medium text-slate-700">Phone Number</label>
+                             {phoneConfirmed && (
+                               <span className="text-green-600 text-lg">✓</span>
+                             )}
+                           </div>
                            <input
                              type="tel"
                              placeholder="(000) 000-0000"
@@ -450,10 +498,12 @@ function MemberDashboardContent() {
                                      const audio = new Audio(voiceUrl);
                                      audio.play().catch(error => {
                                        console.error('Error playing audio:', error);
-                                       alert('Error playing voice recording. Please try recording again.');
+                                       setErrorMessage('Error playing voice recording. Please try recording again.');
+        setShowErrorModal(true);
                                      });
                                    } else {
-                                     alert('No voice recording found. Please record your phone number first.');
+                                     setErrorMessage('No voice recording found. Please record your phone number first.');
+                                     setShowErrorModal(true);
                                    }
                                  }}
                                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"
@@ -481,10 +531,12 @@ function MemberDashboardContent() {
                                      const audio = new Audio(voiceUrl);
                                      audio.play().catch(error => {
                                        console.error('Error playing audio:', error);
-                                       alert('Error playing voice recording. Please try recording again.');
+                                       setErrorMessage('Error playing voice recording. Please try recording again.');
+        setShowErrorModal(true);
                                      });
                                    } else {
-                                     alert('No voice recording found. Please record your phone number first.');
+                                     setErrorMessage('No voice recording found. Please record your phone number first.');
+                                     setShowErrorModal(true);
                                    }
                                  }}
                                  className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center gap-1"
@@ -887,8 +939,19 @@ function MemberDashboardContent() {
 
                         // STEP 2: UPLOAD - send the audio blob under the EXACT field name the server expects
                         console.log('Step 2: Uploading audio file...');
-                        const fd = new FormData();
-                        fd.append("audio", recordedBlob, "voice.webm"); // MUST match server field name
+                        console.log('RecordedBlob details:', {
+                          isBlob: recordedBlob instanceof Blob,
+                          size: recordedBlob.size,
+                          type: recordedBlob.type,
+                          constructor: recordedBlob.constructor.name
+                        });
+                        
+           const fd = new FormData();
+           fd.append("audio", recordedBlob, "voice.webm"); // MUST match server field name
+           // Add phone digits for secure voice linking
+           if (memberData?.phone) {
+             fd.append("phoneDigits", memberData.phone);
+           }
                         
                         console.log('FormData constructed:', {
                           hasAudio: fd.has("audio"),
@@ -910,11 +973,14 @@ function MemberDashboardContent() {
 
                         // STEP 3: COMMIT - finalize + create DB record
                         console.log('Step 3: Committing to database...');
-                        const commitRes = await fetch("/api/voice/commit", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ uploadId }),
-                        });
+           const commitRes = await fetch("/api/voice/commit", {
+             method: "POST",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({ 
+               uploadId,
+               phoneDigits: memberData?.phone || null
+             }),
+           });
                         if (!commitRes.ok) {
                           const errorData = await commitRes.json();
                           throw new Error(`commit failed: ${errorData.error}`);
@@ -922,18 +988,36 @@ function MemberDashboardContent() {
                         const commitData = await commitRes.json();
                         console.log('Step 3: Commit successful', commitData);
 
-                        // Update user profile with voice recording
-                        console.log('Step 4: Updating user profile...');
-                        const voiceUrl = `voice/${uploadId}.webm`;
-                        const profileResponse = await fetch('/api/user/profile', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            memberCode: memberCode,
-                            voiceUrl: voiceUrl,
-                            hasVoice: true
-                          })
-                        });
+           // Update user profile with voice recording and completion steps
+           console.log('Step 4: Updating user profile...');
+           const voiceUrl = `voice/${uploadId}.webm`;
+           
+           // Determine which step was completed
+           let profileSteps = {};
+           let newCurrentStep = currentStep;
+           
+           if (showVoiceModal === 'primary') {
+             profileSteps = { primaryVoice: true };
+             newCurrentStep = 2;
+           } else if (showVoiceModal === 'profile') {
+             profileSteps = { primaryVoice: true, profileConfirm: true };
+             newCurrentStep = 3;
+           } else if (showVoiceModal === 'phone') {
+             profileSteps = { primaryVoice: true, profileConfirm: true, phoneVoice: true };
+             newCurrentStep = 4;
+           }
+           
+           const profileResponse = await fetch('/api/user/profile', {
+             method: 'PUT',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               memberCode: memberCode,
+               voiceUrl: voiceUrl,
+               hasVoice: true,
+               profileSteps: profileSteps,
+               currentStep: newCurrentStep
+             })
+           });
 
                         if (profileResponse.ok) {
                           console.log('Step 3: Profile update successful');
@@ -1063,7 +1147,8 @@ function MemberDashboardContent() {
                         
                       } catch (error) {
                         console.error('Error recording voice:', error);
-                        alert('Error accessing microphone. Please try again.');
+                        setErrorMessage('Error accessing microphone. Please try again.');
+                        setShowErrorModal(true);
                         setIsRecording(false);
                         setCountdown(0);
                       }
@@ -1094,6 +1179,29 @@ function MemberDashboardContent() {
               <button
                 onClick={() => setShowErrorModal(false)}
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="text-6xl mb-4">✅</div>
+              <h3 className="text-lg font-bold text-green-600 mb-4">
+                Success!
+              </h3>
+              <p className="text-gray-700 mb-6">
+                {successMessage}
+              </p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
               >
                 Close
               </button>

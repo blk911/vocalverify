@@ -39,8 +39,16 @@ export async function GET(req: NextRequest) {
         email: userData?.email || '',
         voiceUrl: userData?.voiceUrl || '',
         hasVoice: userData?.hasVoice || false,
+        profilePicture: userData?.profilePicture || '',
         status: userData?.status || 'pending',
-        createdAt: userData?.createdAt || null
+        createdAt: userData?.createdAt || null,
+        // Profile completion steps
+        profileSteps: {
+          primaryVoice: userData?.profileSteps?.primaryVoice || false,
+          profileConfirm: userData?.profileSteps?.profileConfirm || false,
+          phoneVoice: userData?.profileSteps?.phoneVoice || false
+        },
+        currentStep: userData?.currentStep || 1
       }
     });
 
@@ -55,7 +63,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { memberCode, voiceUrl, hasVoice, fullName, phone, email } = await req.json();
+    const { memberCode, voiceUrl, hasVoice, fullName, phone, email, profilePicture, profileSteps, currentStep } = await req.json();
     
     if (!memberCode) {
       return NextResponse.json(
@@ -64,7 +72,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    console.log('Updating profile for memberCode:', memberCode, { voiceUrl, hasVoice });
+    console.log('Updating profile for memberCode:', memberCode, { voiceUrl, hasVoice, profilePicture });
 
     // Update user profile in Firestore
     const updateData: any = {
@@ -76,6 +84,9 @@ export async function PUT(req: NextRequest) {
     if (fullName !== undefined) updateData.fullName = fullName;
     if (phone !== undefined) updateData.phone = phone;
     if (email !== undefined) updateData.email = email;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (profileSteps !== undefined) updateData.profileSteps = profileSteps;
+    if (currentStep !== undefined) updateData.currentStep = currentStep;
 
     await db.collection('users').doc(memberCode).update(updateData);
 
@@ -87,7 +98,8 @@ export async function PUT(req: NextRequest) {
       profile: {
         memberCode,
         voiceUrl,
-        hasVoice
+        hasVoice,
+        profilePicture
       }
     });
 

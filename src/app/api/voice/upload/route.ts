@@ -1,69 +1,49 @@
 import { NextResponse } from "next/server";
 import { storage } from "@/lib/firebaseAdmin";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// optional for large files: export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const uploadId = searchParams.get("uploadId");
+  if (!uploadId) return NextResponse.json({ error: "missing uploadId" }, { status: 400 });
+
+  const form = await req.formData();
+  const file = form.get("audio") as File | null; // field name MUST be "audio"
+  const phoneDigits = form.get("phoneDigits") as string | null; // Phone digits for secure linking
+  if (!file) return NextResponse.json({ error: "missing audio" }, { status: 400 });
+
+  console.log('Voice upload API called with uploadId:', uploadId);
+  console.log('File details:', { name: file.name, size: file.size, type: file.type });
+
   try {
-    console.log('Voice upload API called');
-    console.log('Request URL:', req.url);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    const buf = Buffer.from(await file.arrayBuffer());
+    // Include phone digits in filename for secure linking
+    const phoneSuffix = phoneDigits ? `_${phoneDigits.replace(/\D/g, '')}` : '';
+    const path = `voice/${uploadId}${phoneSuffix}.webm`;
     
-    const { searchParams } = new URL(req.url);
-    const uploadId = searchParams.get("uploadId");
-    console.log('Upload ID from query params:', uploadId);
+    console.log('Uploading voice file to Firebase Storage:', path);
+    console.log('File size:', buf.length, 'bytes');
     
-    if (!uploadId) {
-      console.error('Missing uploadId in query params');
-      return NextResponse.json({ error: "missing uploadId" }, { status: 400 });
-    }
-
-    const form = await req.formData();
-    console.log('Form data keys:', Array.from(form.keys()));
-    
-    const file = form.get("audio") as File | null; // MUST match client key
-    console.log('Audio file found:', !!file, file?.name, file?.size);
-    
-    if (!file) {
-      console.error('Missing audio file in form data');
-      return NextResponse.json({ error: "missing audio" }, { status: 400 });
-    }
-
-    console.log('Uploading file:', {
-      uploadId,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type
+    // Upload to Firebase Storage
+    const gcsFile = storage.bucket().file(path);
+    await gcsFile.save(buf, { 
+      resumable: false, 
+      contentType: file.type || "audio/webm" 
     });
-
-    const arrayBuf = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuf);
-
-    console.log('Firebase Storage connection test...');
-    const bucket = storage.bucket(); // ensure env has FIREBASE_STORAGE_BUCKET
-    console.log('Bucket name:', bucket.name);
     
-    const path = `voice/${uploadId}.webm`;
-    console.log('Target path:', path);
-    const gcsFile = bucket.file(path);
-
-    await gcsFile.save(buffer, {
-      resumable: false,
-      contentType: file.type || "audio/webm",
-      metadata: { cacheControl: "private, max-age=0" },
+    console.log('Voice file uploaded successfully to Firebase Storage');
+    
+    return NextResponse.json({ 
+      ok: true, 
+      path,
+      message: "Voice file uploaded successfully to Firebase Storage"
     });
-
-    console.log('File uploaded successfully:', { uploadId, path });
-
-    // Return the canonical storage path so commit can verify it
-    return NextResponse.json({ path });
   } catch (error: any) {
-    console.error('Upload error:', error);
-    return NextResponse.json(
-      { error: "Upload failed", code: "SERVER_ERROR" },
-      { status: 500 }
-    );
+    console.error('Voice upload error:', error);
+    return NextResponse.json({ 
+      error: "Failed to upload voice file", 
+      details: error.message 
+    }, { status: 500 });
   }
 }
