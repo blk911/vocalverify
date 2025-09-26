@@ -16,10 +16,16 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      {/* Background pattern */}
-      <div className="absolute inset-0 bg-black/20"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/30 to-purple-600/30"></div>
+    <main className="relative w-full h-screen overflow-hidden bg-black">
+      {/* Background video */}
+      <video
+        className="absolute inset-0 w-full h-full object-cover"
+        autoPlay
+        muted
+        playsInline
+      >
+        <source src="/bg.mp4" type="video/mp4" />
+      </video>
 
       {/* ENTER button - separate element, positioned below */}
       <div 
