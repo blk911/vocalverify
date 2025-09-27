@@ -19,26 +19,26 @@ export async function GET(req: NextRequest) {
     today.setHours(0, 0, 0, 0);
     
     const newToday = users.filter(user => {
-      if (!user.createdAt) return false;
+      if (!(user as any).createdAt) return false;
       
       // Handle different date formats
       let userDate;
-      if (typeof user.createdAt === 'string') {
-        userDate = new Date(user.createdAt);
-      } else if (typeof user.createdAt === 'number') {
-        userDate = new Date(user.createdAt);
-      } else if (user.createdAt.toDate) {
+      if (typeof (user as any).createdAt === 'string') {
+        userDate = new Date((user as any).createdAt);
+      } else if (typeof (user as any).createdAt === 'number') {
+        userDate = new Date((user as any).createdAt);
+      } else if ((user as any).createdAt && (user as any).createdAt.toDate) {
         // Firebase Timestamp
-        userDate = user.createdAt.toDate();
+        userDate = (user as any).createdAt.toDate();
       } else {
-        userDate = new Date(user.createdAt);
+        userDate = new Date((user as any).createdAt);
       }
       
       return userDate >= today;
     }).length;
 
-    const pendingMembers = users.filter(user => user.status === 'pending').length;
-    const registeredMembers = users.filter(user => user.status === 'registered').length;
+    const pendingMembers = users.filter(user => (user as any).status === 'pending').length;
+    const registeredMembers = users.filter(user => (user as any).status === 'registered').length;
 
     const stats = {
       totalMembers,
