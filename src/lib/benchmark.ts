@@ -257,8 +257,6 @@ export class VoiceAuthBenchmark {
     // Generate recommendations
     const recommendations = this.generateRecommendations();
     
-    }/100`);
-    
     return {
       overallScore,
       categoryScores,
