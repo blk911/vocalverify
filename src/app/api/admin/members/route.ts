@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
     // Format members for admin dashboard
     const members = users.map(user => ({
-      name: user.fullName || user.name || 'Unknown',
+      name: (user as any).fullName || (user as any).name || 'Unknown',
       phone: user.phone || user.memberCode || 'N/A',
       memberCode: user.memberCode || user.phone || 'N/A',
       status: user.status || 'unknown',
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // Format members for admin dashboard
     const members = users.map(user => ({
-      name: user.fullName || user.name || 'Unknown',
+      name: (user as any).fullName || (user as any).name || 'Unknown',
       phone: user.phone || user.memberCode || 'N/A',
       memberCode: user.memberCode || user.phone || 'N/A',
       status: user.status || 'unknown',
