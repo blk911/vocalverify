@@ -23,6 +23,20 @@ export default function HomePage() {
         style={{ backgroundImage: 'url(/amihuman-bkgrnd.png)' }}
       />
 
+      {/* Logo and Branding */}
+      <div className="absolute z-10 inset-0 flex flex-col items-center justify-center">
+        <div className="flex items-center space-x-4 mb-8">
+          {/* Logo */}
+          <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-600 rounded-lg flex items-center justify-center shadow-2xl">
+            <span className="text-2xl font-bold text-white">A</span>
+          </div>
+          {/* Brand Text */}
+          <h1 className="text-4xl font-bold text-white tracking-wide">
+            amihuman.net
+          </h1>
+        </div>
+      </div>
+
       {/* ENTER button - separate element, positioned below */}
       <div 
         className={`absolute z-10 flex w-full justify-center transition-all duration-1000 ease-out ${
