@@ -8,8 +8,6 @@ export async function GET() {
   try {
     const benchmark = await voiceAuthBenchmark.runCompleteBenchmark();
     
-    }/100`);
-    
     return NextResponse.json({
       ok: true,
       benchmark,
