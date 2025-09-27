@@ -16,12 +16,12 @@ export async function GET(req: NextRequest) {
     // Format members for admin dashboard
     const members = users.map(user => ({
       name: (user as any).fullName || (user as any).name || 'Unknown',
-      phone: user.phone || user.memberCode || 'N/A',
-      memberCode: user.memberCode || user.phone || 'N/A',
-      status: user.status || 'unknown',
-      hasVoice: user.hasVoice || false,
-      profilePicture: user.profilePicture || '',
-      createdAt: user.createdAt || new Date().toISOString()
+      phone: (user as any).phone || (user as any).memberCode || 'N/A',
+      memberCode: (user as any).memberCode || (user as any).phone || 'N/A',
+      status: (user as any).status || 'unknown',
+      hasVoice: (user as any).hasVoice || false,
+      profilePicture: (user as any).profilePicture || '',
+      createdAt: (user as any).createdAt || new Date().toISOString()
     }));
 
 
@@ -51,12 +51,12 @@ export async function POST(req: NextRequest) {
     // Format members for admin dashboard
     const members = users.map(user => ({
       name: (user as any).fullName || (user as any).name || 'Unknown',
-      phone: user.phone || user.memberCode || 'N/A',
-      memberCode: user.memberCode || user.phone || 'N/A',
-      status: user.status || 'unknown',
-      hasVoice: user.hasVoice || false,
-      profilePicture: user.profilePicture || '',
-      createdAt: user.createdAt || new Date().toISOString()
+      phone: (user as any).phone || (user as any).memberCode || 'N/A',
+      memberCode: (user as any).memberCode || (user as any).phone || 'N/A',
+      status: (user as any).status || 'unknown',
+      hasVoice: (user as any).hasVoice || false,
+      profilePicture: (user as any).profilePicture || '',
+      createdAt: (user as any).createdAt || new Date().toISOString()
     }));
 
 
