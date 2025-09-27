@@ -12,8 +12,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "missing uploadId" }, { status: 400 });
     }
 
-    console.log('Voice analysis API called with uploadId:', uploadId);
-
     // Get voice file metadata
     const phoneSuffix = phoneDigits ? `_${phoneDigits.replace(/\D/g, '')}` : '';
     const path = `voice/${uploadId}${phoneSuffix}.webm`;
@@ -39,8 +37,6 @@ export async function POST(req: Request) {
     // Store biometric profile in database
     await db.collection("voice_biometrics").doc(uploadId).set(biometricProfile, { merge: true });
 
-    console.log('Voice biometric analysis completed:', uploadId);
-
     return NextResponse.json({
       ok: true,
       uploadId,
@@ -49,7 +45,6 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error('Voice analysis error:', error);
     return NextResponse.json({
       error: "Failed to analyze voice biometrics",
       details: error.message

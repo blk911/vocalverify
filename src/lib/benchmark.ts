@@ -232,8 +232,6 @@ export class VoiceAuthBenchmark {
    * Run complete benchmark suite
    */
   async runCompleteBenchmark(): Promise<AppBenchmark> {
-    console.log('🚀 Starting comprehensive benchmark...');
-    
     // Run all tests
     const deployment = await this.testDeployment();
     const database = await this.testDatabase();
@@ -259,8 +257,7 @@ export class VoiceAuthBenchmark {
     // Generate recommendations
     const recommendations = this.generateRecommendations();
     
-    console.log('✅ Benchmark complete!');
-    console.log(`📊 Overall Score: ${overallScore.toFixed(1)}/100`);
+    }/100`);
     
     return {
       overallScore,

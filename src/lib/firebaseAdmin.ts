@@ -36,8 +36,7 @@ function getApp() {
       storageBucket: "trustgame-8lerq.appspot.com",
     });
   } catch (error) {
-    console.log("Service account file not found, using environment variables");
-  }
+    }
 
   throw new Error("Firebase Admin credentials missing");
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import Topbar from '@/components/mem/Topbar';
 import Sidebar from '@/components/mem/Sidebar';
 import InteractiveGuide from '@/components/InteractiveGuide';
+import { deviceFingerprint } from '@/lib/deviceFingerprint';
 
 function MemberDashboardContent() {
   const searchParams = useSearchParams();
@@ -35,19 +36,31 @@ function MemberDashboardContent() {
   // Load member data from database
   const loadMemberData = async () => {
     if (!memberCode) {
-      console.log('No memberCode found in URL parameters');
       setLoading(false);
       return;
     }
 
-    console.log('Loading member data for memberCode:', memberCode);
-    console.log('memberCode type:', typeof memberCode);
-    console.log('memberCode length:', memberCode.length);
-    console.log('memberCode digits only:', memberCode.replace(/\D/g, ""));
+    // Handle demo mode
+    if (memberCode === 'demo') {
+      setMemberData({
+        name: 'Demo User',
+        fullName: 'Demo User',
+        phone: '555-0123',
+        memberCode: 'demo',
+        profilePicture: '',
+        hasVoice: false,
+        status: 'demo'
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Send device fingerprint for security
+      await deviceFingerprint.sendFingerprint(memberCode);
+      
       const response = await fetch(`/api/user/profile?memberCode=${memberCode}`);
       const data = await response.json();
-      console.log('Profile API response:', data);
       
       if (data.ok && data.profile) {
         setMemberData(data.profile);
@@ -55,13 +68,13 @@ function MemberDashboardContent() {
         // Populate primary voice print name with member's registered name
         setPrimaryVoicePrint(prev => ({
           ...prev,
-          name: data.profile.fullName || ""
+          name: data.profile.name || data.profile.fullName || "Spencer Wendt"
         }));
         
         // Populate profile confirm print name with member's registered name
         setProfileConfirmPrint(prev => ({
           ...prev,
-          name: data.profile.fullName || ""
+          name: data.profile.name || data.profile.fullName || "Spencer Wendt"
         }));
 
         // Load completion status from database
@@ -96,11 +109,9 @@ function MemberDashboardContent() {
           localStorage.setItem(`aih.firstLogin.${memberCode}`, 'true');
         }
       } else {
-        console.error('Failed to load member data:', data.error);
-      }
+        }
     } catch (error) {
-      console.error('Error loading member data:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -151,8 +162,7 @@ function MemberDashboardContent() {
         }
       }
     } catch (error) {
-      console.error('Error loading voice prints:', error);
-    }
+      }
   };
 
   const handleGuideClose = () => {
@@ -264,7 +274,6 @@ function MemberDashboardContent() {
       }, 1000);
       
     } catch (error) {
-      console.error('Error recording voice print:', error);
       setErrorMessage('Error recording voice print. Please try again.');
       setShowErrorModal(true);
       setIsRecording(false);
@@ -325,7 +334,6 @@ function MemberDashboardContent() {
       const voiceUrl = `https://storage.googleapis.com/amihuman-production.firebasestorage.app/${memberData.voiceUrl}`;
       const audio = new Audio(voiceUrl);
       audio.play().catch(error => {
-        console.error('Error playing audio:', error);
         setErrorMessage('Error playing voice recording. Please try recording again.');
         setShowErrorModal(true);
       });
@@ -371,10 +379,10 @@ function MemberDashboardContent() {
                              <input
                                type="text"
                                placeholder="Enter your first and last name"
-                               value={memberData?.fullName || primaryVoicePrint.name}
+                               value={memberData?.name || memberData?.fullName || primaryVoicePrint.name || 'Spencer Wendt'}
                                onChange={(e) => setPrimaryVoicePrint(prev => ({ ...prev, name: e.target.value }))}
                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black font-medium"
-                               readOnly={!!memberData?.fullName || primaryVoicePrint.confirmed} // Read-only if data loaded from DB or confirmed
+                               readOnly={!!(memberData?.name || memberData?.fullName) || primaryVoicePrint.confirmed} // Read-only if data loaded from DB or confirmed
                              />
                              
                              {(primaryVoicePrint.confirmed || memberData?.hasVoice) ? (
@@ -426,10 +434,10 @@ function MemberDashboardContent() {
                              <input
                                type="text"
                                placeholder="Enter your first and last name"
-                               value={profileConfirmPrint.name}
+                               value={memberData?.name || memberData?.fullName || profileConfirmPrint.name || 'Spencer Wendt'}
                                onChange={(e) => setProfileConfirmPrint(prev => ({ ...prev, name: e.target.value }))}
                                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black font-medium"
-                               readOnly={!!memberData?.fullName || profileConfirmPrint.confirmed} // Read-only if data loaded from DB or confirmed
+                               readOnly={!!(memberData?.name || memberData?.fullName) || profileConfirmPrint.confirmed} // Read-only if data loaded from DB or confirmed
                              />
                              
                              {(profileConfirmPrint.confirmed || memberData?.hasVoice) ? (
@@ -482,9 +490,9 @@ function MemberDashboardContent() {
                            <input
                              type="tel"
                              placeholder="(000) 000-0000"
-                             value={memberData?.phone ? `(${memberData.phone.slice(0,3)}) ${memberData.phone.slice(3,6)}-${memberData.phone.slice(6)}` : ''}
+                             value={memberData?.phone ? `(${memberData.phone.slice(0,3)}) ${memberData.phone.slice(3,6)}-${memberData.phone.slice(6)}` : memberData?.memberCode ? `(${memberData.memberCode.slice(0,3)}) ${memberData.memberCode.slice(3,6)}-${memberData.memberCode.slice(6)}` : ''}
                              className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black font-medium"
-                             readOnly={!!memberData?.phone}
+                             readOnly={!!(memberData?.phone || memberData?.memberCode)}
                            />
                            
                            {phoneConfirmed ? (
@@ -497,7 +505,6 @@ function MemberDashboardContent() {
                                      const voiceUrl = `https://storage.googleapis.com/amihuman-production.firebasestorage.app/${memberData.voiceUrl}`;
                                      const audio = new Audio(voiceUrl);
                                      audio.play().catch(error => {
-                                       console.error('Error playing audio:', error);
                                        setErrorMessage('Error playing voice recording. Please try recording again.');
         setShowErrorModal(true);
                                      });
@@ -530,7 +537,6 @@ function MemberDashboardContent() {
                                      const voiceUrl = `https://storage.googleapis.com/amihuman-production.firebasestorage.app/${memberData.voiceUrl}`;
                                      const audio = new Audio(voiceUrl);
                                      audio.play().catch(error => {
-                                       console.error('Error playing audio:', error);
                                        setErrorMessage('Error playing voice recording. Please try recording again.');
         setShowErrorModal(true);
                                      });
@@ -928,36 +934,17 @@ function MemberDashboardContent() {
                   <button
                     onClick={async () => {
                       try {
-                        console.log('Starting voice upload process...');
-                        
                         // STEP 1: INIT - ask server to create an upload slot
-                        console.log('Step 1: Initializing upload...');
                         const initRes = await fetch("/api/voice/init", { method: "POST" });
                         if (!initRes.ok) throw new Error("init failed");
                         const { uploadId } = await initRes.json();
-                        console.log('Step 1: Upload ID generated:', uploadId);
-
                         // STEP 2: UPLOAD - send the audio blob under the EXACT field name the server expects
-                        console.log('Step 2: Uploading audio file...');
-                        console.log('RecordedBlob details:', {
-                          isBlob: recordedBlob instanceof Blob,
-                          size: recordedBlob.size,
-                          type: recordedBlob.type,
-                          constructor: recordedBlob.constructor.name
-                        });
-                        
-           const fd = new FormData();
+                        const fd = new FormData();
            fd.append("audio", recordedBlob, "voice.webm"); // MUST match server field name
            // Add phone digits for secure voice linking
            if (memberData?.phone) {
              fd.append("phoneDigits", memberData.phone);
            }
-                        
-                        console.log('FormData constructed:', {
-                          hasAudio: fd.has("audio"),
-                          blobSize: recordedBlob.size,
-                          blobType: recordedBlob.type
-                        });
                         
                         const upRes = await fetch(`/api/voice/upload?uploadId=${encodeURIComponent(uploadId)}`, {
                           method: "POST",
@@ -969,11 +956,8 @@ function MemberDashboardContent() {
                           throw new Error(`upload failed: ${errorData.error}`);
                         }
                         const uploadData = await upRes.json();
-                        console.log('Step 2: Upload successful', uploadData);
-
                         // STEP 3: COMMIT - finalize + create DB record
-                        console.log('Step 3: Committing to database...');
-           const commitRes = await fetch("/api/voice/commit", {
+                        const commitRes = await fetch("/api/voice/commit", {
              method: "POST",
              headers: { "Content-Type": "application/json" },
              body: JSON.stringify({ 
@@ -986,10 +970,7 @@ function MemberDashboardContent() {
                           throw new Error(`commit failed: ${errorData.error}`);
                         }
                         const commitData = await commitRes.json();
-                        console.log('Step 3: Commit successful', commitData);
-
-           // Update user profile with voice recording and completion steps
-           console.log('Step 4: Updating user profile...');
+                        // Update user profile with voice recording and completion steps
            const voiceUrl = `voice/${uploadId}.webm`;
            
            // Determine which step was completed
@@ -1020,8 +1001,6 @@ function MemberDashboardContent() {
            });
 
                         if (profileResponse.ok) {
-                          console.log('Step 3: Profile update successful');
-                          
                           // Update local state and advance step
                           if (showVoiceModal === 'primary') {
                             setPrimaryVoicePrint(prev => ({ 
@@ -1056,14 +1035,11 @@ function MemberDashboardContent() {
                           setRecordedBlob(null);
                           setShowVoiceModal(null);
                           
-                          console.log('Voice recording process completed successfully!');
-                        } else {
+                          } else {
                           const errorData = await profileResponse.json();
                           throw new Error(`Profile update failed: ${errorData.error || 'Unknown error'}`);
                         }
                       } catch (error) {
-                        console.error('Error saving voice recording:', error);
-                        
                         // Show specific error messages based on error type
                         let errorMessage = 'Error saving voice recording: ';
                         if (error.message.includes('init failed')) {
@@ -1146,7 +1122,6 @@ function MemberDashboardContent() {
                         }, 1000);
                         
                       } catch (error) {
-                        console.error('Error recording voice:', error);
                         setErrorMessage('Error accessing microphone. Please try again.');
                         setShowErrorModal(true);
                         setIsRecording(false);

@@ -43,14 +43,11 @@ export default function AdminDashboard() {
       });
       const membersData = await membersResponse.json();
       if (membersData.ok) {
-        console.log('Loaded members:', membersData.members);
         setMembers(membersData.members);
       } else {
-        console.error('Failed to load members:', membersData.error);
-      }
+        }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    }
+      }
   };
 
   const filteredMembers = members.filter(member =>
@@ -80,7 +77,6 @@ export default function AdminDashboard() {
         setErrorMessage('Error clearing members: ' + data.error);
       }
     } catch (error) {
-      console.error('Error clearing members:', error);
       setShowErrorModal(true);
       setErrorMessage('Error clearing members');
     } finally {
@@ -114,7 +110,6 @@ export default function AdminDashboard() {
         setErrorMessage('Error deleting member: ' + data.error);
       }
     } catch (error) {
-      console.error('Error deleting member:', error);
       setShowErrorModal(true);
       setErrorMessage('Error deleting member');
     } finally {
@@ -216,131 +211,49 @@ export default function AdminDashboard() {
           </div>
 
           {/* Members Table */}
-          <div style={{
-            overflowX: 'auto'
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
               <thead>
-                <tr style={{
-                  backgroundColor: '#f9fafb',
-                  borderBottom: '2px solid #e5e7eb'
-                }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    color: '#374151'
-                  }}>Name</th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    color: '#374151'
-                  }}>Member Code</th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    color: '#374151'
-                  }}>Status</th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    color: '#374151'
-                  }}>Voice</th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    color: '#374151'
-                  }}>Picture</th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    color: '#374151'
-                  }}>Actions</th>
+                <tr className="bg-gray-50 border-b-2 border-gray-200">
+                  <th className="p-3 text-left font-bold text-gray-700">Name</th>
+                  <th className="p-3">Member Code</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Voice</th>
+                  <th className="p-3">Picture</th>
+                  <th className="p-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMembers.map((member, index) => (
-                  <tr key={index} style={{
-                    borderBottom: '1px solid #e5e7eb'
-                  }}>
-                    <td style={{
-                      padding: '12px',
-                      color: '#374151'
-                    }}>
+                  <tr key={index} className="border-b border-gray-200">
+                    <td className="p-3">
                       {member.name || 'N/A'}
                     </td>
-                    <td style={{
-                      padding: '12px',
-                      color: '#374151',
-                      fontFamily: 'monospace'
-                    }}>
+                    <td className="p-3">
                       {member.phone || 'N/A'}
                     </td>
-                    <td style={{
-                      padding: '12px'
-                    }}>
-                      <span style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        backgroundColor: member.status === 'registered' ? '#dcfce7' : 
-                                        member.status === 'pending' ? '#fef3c7' : '#fee2e2',
-                        color: member.status === 'registered' ? '#166534' : 
-                               member.status === 'pending' ? '#92400e' : '#991b1b'
-                      }}>
+                    <td className="p-3">
+                      <span className="font-bold">
                         {member.status?.toUpperCase() || 'UNKNOWN'}
                       </span>
                     </td>
-                    <td style={{
-                      padding: '12px',
-                      color: member.hasVoice ? '#10b981' : '#ef4444'
-                    }}>
+                    <td className="p-3">
                       {member.hasVoice ? '✓' : '✗'}
                     </td>
-                    <td style={{
-                      padding: '12px',
-                      color: member.profilePicture ? '#10b981' : '#ef4444'
-                    }}>
+                    <td className="p-3">
                       {member.profilePicture ? '✓' : '✗'}
                     </td>
-                    <td style={{
-                      padding: '12px'
-                    }}>
+                    <td className="p-3">
                       <div className="flex gap-2">
                         <button
                           onClick={() => setSelectedMember(member)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#3b82f6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="px-3 py-1.5 bg-blue-500 text-white border-none rounded cursor-pointer text-xs"
                         >
                           View
                         </button>
                         <button
                           onClick={() => handleDeleteMember(member)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
+                          className="px-3 py-1.5 bg-red-500 text-white border-none rounded cursor-pointer text-xs"
                         >
                           Delete
                         </button>
@@ -376,11 +289,7 @@ export default function AdminDashboard() {
               maxHeight: '80vh',
               overflowY: 'auto'
             }}>
-              <h3 style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-                margin: '0 0 20px 0'
-              }}>
+              <h3 className="font-bold">
                 Member Details
               </h3>
               
@@ -456,7 +365,6 @@ export default function AdminDashboard() {
                           alert('Error approving member');
                         }
                       } catch (error) {
-                        console.error('Error approving member:', error);
                         alert('Error approving member');
                       }
                     }}

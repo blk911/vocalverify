@@ -5,8 +5,6 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('User phone lookup API called');
-    
     const { phone } = await req.json();
     
     if (!phone) {
@@ -33,7 +31,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error looking up user by phone:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to lookup user", code: "SERVER_ERROR" },
       { status: 500 }

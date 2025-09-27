@@ -5,8 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🛡️ Anti-spoofing detection request received');
-    
     const { audioBuffer, memberCode } = await req.json();
     
     if (!audioBuffer || !memberCode) {
@@ -15,8 +13,6 @@ export async function POST(req: NextRequest) {
         error: "Missing required fields: audioBuffer, memberCode"
       }, { status: 400 });
     }
-    
-    console.log(`🔍 Anti-spoofing analysis for member: ${memberCode}`);
     
     // Mock anti-spoofing detection
     const mockAntiSpoofAnalysis = {
@@ -45,8 +41,6 @@ export async function POST(req: NextRequest) {
       recommendation: "AUTHENTICATE"
     };
     
-    console.log('✅ Anti-spoofing analysis complete:', mockAntiSpoofAnalysis);
-    
     return NextResponse.json({
       ok: true,
       antiSpoofAnalysis: mockAntiSpoofAnalysis,
@@ -54,7 +48,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Anti-spoofing analysis error:', error);
     return NextResponse.json({
       ok: false,
       error: "Anti-spoofing analysis failed",

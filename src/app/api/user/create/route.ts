@@ -3,13 +3,17 @@ import { db } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
+export async function GET(req: NextRequest) {
+  return NextResponse.json({
+    ok: false,
+    error: "Use POST method to create users",
+    code: "METHOD_NOT_ALLOWED"
+  }, { status: 405 });
+}
+
 export async function POST(req: NextRequest) {
   try {
-    console.log('User create API called');
-    
     const { name, memberCode, phone } = await req.json();
-    
-    console.log('Creating user:', { name, memberCode, phone });
     
     // Validate required fields
     if (!name || !memberCode || !phone) {
@@ -51,8 +55,6 @@ export async function POST(req: NextRequest) {
     
     await userRef.set(userData);
     
-    console.log('User created successfully:', { memberCode, name });
-    
     return NextResponse.json({
       ok: true,
       message: "User created successfully",
@@ -64,7 +66,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error creating user:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to create user", code: "SERVER_ERROR" },
       { status: 500 }

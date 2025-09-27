@@ -14,23 +14,18 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    console.log('Admin approve-member API called for:', memberCode);
-    
     // Update user status to registered
     await db.collection('users').doc(memberCode).update({
       status: 'registered',
       updatedAt: new Date().toISOString()
     });
     
-    console.log(`Approved user: ${memberCode}`);
-
     return NextResponse.json({
       ok: true,
       message: "User approved successfully"
     });
 
   } catch (error: any) {
-    console.error('Error approving user:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to approve user" },
       { status: 500 }

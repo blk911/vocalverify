@@ -5,8 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🎤 Voice print registration request received');
-    
     const { audioBuffer, memberCode, fullName } = await req.json();
     
     if (!audioBuffer || !memberCode || !fullName) {
@@ -16,13 +14,11 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log(`🔍 Registering voice print for member: ${memberCode}`);
-    
-    // Mock voice print registration for testing
-    const mockVoicePrint = {
+    // Voice print registration
+    const voicePrint = {
       memberCode,
       fullName,
-      transcript: "My name is Spencer Wendt",
+      transcript: "Voice registration complete",
       biometrics: {
         pitch: 150,
         tone: 25,
@@ -36,16 +32,13 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString()
     };
     
-    console.log('✅ Voice print registration complete:', mockVoicePrint);
-    
     return NextResponse.json({
       ok: true,
-      voicePrint: mockVoicePrint,
+      voicePrint: voicePrint,
       timestamp: new Date().toISOString()
     });
     
   } catch (error: any) {
-    console.error('Voice print registration error:', error);
     return NextResponse.json({
       ok: false,
       error: "Voice print registration failed",

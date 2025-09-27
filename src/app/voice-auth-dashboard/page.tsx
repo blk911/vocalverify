@@ -42,13 +42,11 @@ export default function VoiceAuthDashboard() {
 
   const startRecording = () => {
     setIsRecording(true);
-    console.log('🎤 Recording started...');
-  };
+    };
 
   const stopRecording = () => {
     setIsRecording(false);
-    console.log('⏹️ Recording stopped');
-  };
+    };
 
   const testVoiceVerification = async () => {
     try {
@@ -67,8 +65,7 @@ export default function VoiceAuthDashboard() {
         setResults(prev => ({ ...prev, verification: data.verification }));
       }
     } catch (error) {
-      console.error('Voice verification error:', error);
-    }
+      }
   };
 
   const testSpellingVerification = async () => {
@@ -88,8 +85,7 @@ export default function VoiceAuthDashboard() {
         setResults(prev => ({ ...prev, spelling: data.spellingVerification }));
       }
     } catch (error) {
-      console.error('Spelling verification error:', error);
-    }
+      }
   };
 
   const testMultiFactorAuth = async () => {
@@ -109,8 +105,7 @@ export default function VoiceAuthDashboard() {
         setResults(prev => ({ ...prev, multiFactor: data.multiFactorAuth.overallResult }));
       }
     } catch (error) {
-      console.error('Multi-factor auth error:', error);
-    }
+      }
   };
 
   const testAntiSpoofing = async () => {
@@ -129,8 +124,7 @@ export default function VoiceAuthDashboard() {
         setResults(prev => ({ ...prev, antiSpoof: data.antiSpoofAnalysis }));
       }
     } catch (error) {
-      console.error('Anti-spoofing error:', error);
-    }
+      }
   };
 
   const runAllTests = async () => {

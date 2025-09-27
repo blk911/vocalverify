@@ -5,8 +5,6 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('User lookup API called');
-    
     const { memberCode } = await req.json();
     
     if (!memberCode) {
@@ -32,7 +30,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error looking up user:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to lookup user", code: "SERVER_ERROR" },
       { status: 500 }

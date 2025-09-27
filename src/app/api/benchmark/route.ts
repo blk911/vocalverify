@@ -6,12 +6,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    console.log('🚀 Starting comprehensive benchmark...');
-    
     const benchmark = await voiceAuthBenchmark.runCompleteBenchmark();
     
-    console.log('✅ Benchmark complete!');
-    console.log(`📊 Overall Score: ${benchmark.overallScore.toFixed(1)}/100`);
+    }/100`);
     
     return NextResponse.json({
       ok: true,
@@ -21,7 +18,6 @@ export async function GET() {
     });
     
   } catch (error: any) {
-    console.error('Benchmark error:', error);
     return NextResponse.json({
       ok: false,
       error: "Benchmark failed",

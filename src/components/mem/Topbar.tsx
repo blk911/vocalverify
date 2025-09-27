@@ -24,16 +24,15 @@ export default function Topbar({ memberData }: TopbarProps) {
               />
             ) : null}
             <div 
-              className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg"
-              style={{ display: memberData?.profilePicture ? 'none' : 'flex' }}
+              className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg ${memberData?.profilePicture ? 'hidden' : 'flex'}`}
             >
-              {memberData?.fullName ? memberData.fullName.charAt(0).toUpperCase() : 'M'}
+              {memberData?.name ? memberData.name.charAt(0).toUpperCase() : memberData?.fullName ? memberData.fullName.charAt(0).toUpperCase() : 'S'}
             </div>
           </div>
           
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Welcome, {memberData?.fullName || 'Member'}
+              Welcome, {memberData?.name || memberData?.fullName || 'Spencer Wendt'}
             </h1>
             <p className="text-gray-600 text-sm">
               AM I HUMAN.net Member Dashboard
@@ -45,7 +44,7 @@ export default function Topbar({ memberData }: TopbarProps) {
           <div className="text-right">
             <p className="text-sm text-gray-600">Member Code</p>
             <p className="font-mono text-sm font-medium">
-              {memberData?.phone || 'N/A'}
+              {memberData?.phone || memberData?.memberCode || 'N/A'}
             </p>
           </div>
         </div>

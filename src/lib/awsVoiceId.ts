@@ -106,7 +106,6 @@ export class AWSVoiceID {
       };
 
     } catch (error) {
-      console.error('AWS Voice ID verification error:', error);
       return {
         isVerified: false,
         confidence: 0,
@@ -188,7 +187,6 @@ export class AWSVoiceID {
       };
 
     } catch (error) {
-      console.error('AWS Transcribe error:', error);
       return {
         phoneNumber: '',
         extractedContent: '',
@@ -230,7 +228,6 @@ export class AWSVoiceID {
       };
 
     } catch (error) {
-      console.error('Voice verification error:', error);
       return {
         isVerified: false,
         confidence: 0,

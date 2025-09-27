@@ -5,8 +5,6 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('User pending API called');
-    
     const usersRef = db.collection('users');
     const snapshot = await usersRef.where('status', '==', 'pending').get();
     
@@ -22,7 +20,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error getting pending users:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to get pending users", code: "SERVER_ERROR" },
       { status: 500 }

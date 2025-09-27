@@ -5,8 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔐 Multi-factor voice authentication request received');
-    
     const { audioBuffer, memberCode, expectedContent } = await req.json();
     
     if (!audioBuffer || !memberCode) {
@@ -15,8 +13,6 @@ export async function POST(req: NextRequest) {
         error: "Missing required fields: audioBuffer, memberCode"
       }, { status: 400 });
     }
-    
-    console.log(`🔍 Multi-factor verification for member: ${memberCode}`);
     
     // Mock multi-factor voice authentication
     const mockMultiFactorAuth = {
@@ -46,8 +42,6 @@ export async function POST(req: NextRequest) {
       }
     };
     
-    console.log('✅ Multi-factor authentication complete:', mockMultiFactorAuth);
-    
     return NextResponse.json({
       ok: true,
       multiFactorAuth: mockMultiFactorAuth,
@@ -55,7 +49,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Multi-factor authentication error:', error);
     return NextResponse.json({
       ok: false,
       error: "Multi-factor authentication failed",

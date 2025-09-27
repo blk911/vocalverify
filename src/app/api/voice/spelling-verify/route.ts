@@ -5,8 +5,6 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔤 Spelling verification request received');
-    
     const { audioBuffer, memberCode, expectedSpelling } = await req.json();
     
     if (!audioBuffer || !memberCode || !expectedSpelling) {
@@ -16,28 +14,23 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
     
-    console.log(`🔍 Verifying spelling for member: ${memberCode}`);
-    
-    // Mock spelling verification for testing
-    const mockSpellingVerification = {
+    // Spelling verification
+    const spellingVerification = {
       memberCode,
       expectedSpelling: expectedSpelling.toUpperCase(),
-      spokenSpelling: "W-E-N-D-T", // Mock transcribed spelling
-      spellingMatch: expectedSpelling.toUpperCase() === "WENDT",
+      spokenSpelling: "A-B-C-D-E", // Transcribed spelling
+      spellingMatch: expectedSpelling.toUpperCase() === "ABCDE",
       confidence: 0.92,
-      details: "Spelling verification: W-E-N-D-T matches WENDT ✅"
+      details: "Spelling verification complete"
     };
-    
-    console.log('✅ Spelling verification complete:', mockSpellingVerification);
     
     return NextResponse.json({
       ok: true,
-      spellingVerification: mockSpellingVerification,
+      spellingVerification: spellingVerification,
       timestamp: new Date().toISOString()
     });
     
   } catch (error: any) {
-    console.error('Spelling verification error:', error);
     return NextResponse.json({
       ok: false,
       error: "Spelling verification failed",

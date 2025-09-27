@@ -15,8 +15,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.log('Fetching profile for memberCode:', memberCode);
-
     // Get user profile from Firestore
     const userDoc = await db.collection('users').doc(memberCode).get();
     
@@ -28,13 +26,13 @@ export async function GET(req: NextRequest) {
     }
 
     const userData = userDoc.data();
-    console.log('Profile data retrieved:', { memberCode, hasVoice: userData?.hasVoice });
 
     return NextResponse.json({
       ok: true,
       profile: {
         memberCode,
-        fullName: userData?.fullName || '',
+        name: userData?.name || '',
+        fullName: userData?.fullName || userData?.name || '',
         phone: userData?.phone || '',
         email: userData?.email || '',
         voiceUrl: userData?.voiceUrl || '',
@@ -53,7 +51,6 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Profile fetch error:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to fetch profile" },
       { status: 500 }
@@ -72,7 +69,6 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    console.log('Updating profile for memberCode:', memberCode, { voiceUrl, hasVoice, profilePicture });
 
     // Update user profile in Firestore
     const updateData: any = {
@@ -90,7 +86,6 @@ export async function PUT(req: NextRequest) {
 
     await db.collection('users').doc(memberCode).update(updateData);
 
-    console.log('Profile updated successfully:', { memberCode, updateData });
 
     return NextResponse.json({
       ok: true,
@@ -104,7 +99,6 @@ export async function PUT(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Profile update error:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to update profile" },
       { status: 500 }

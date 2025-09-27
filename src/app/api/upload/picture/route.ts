@@ -6,11 +6,35 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('Profile picture upload API called');
     
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const memberCode = formData.get('memberCode') as string;
+    // Check content type and handle accordingly
+    const contentType = req.headers.get('content-type') || '';
+    
+    let file: File;
+    let memberCode: string;
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData
+      const formData = await req.formData();
+      file = formData.get('file') as File;
+      memberCode = formData.get('memberCode') as string;
+    } else {
+      // Handle JSON with base64 file data
+      const body = await req.json();
+      const { fileData, fileName, fileType, memberCode: mc } = body;
+      
+      if (!fileData || !fileName || !mc) {
+        return NextResponse.json(
+          { ok: false, error: "Missing required fields", code: "MISSING_FIELDS" },
+          { status: 400 }
+        );
+      }
+      
+      // Convert base64 to File object
+      const buffer = Buffer.from(fileData, 'base64');
+      file = new File([buffer], fileName, { type: fileType || 'image/jpeg' });
+      memberCode = mc;
+    }
     
     if (!file) {
       return NextResponse.json(
@@ -57,7 +81,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error uploading profile picture:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to upload profile picture", code: "SERVER_ERROR" },
       { status: 500 }

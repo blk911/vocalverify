@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   try {
-    console.log('Admin stats API called');
     
     // Get all users from Firestore
     const usersSnapshot = await db.collection('users').get();
@@ -48,7 +47,6 @@ export async function GET(req: NextRequest) {
       registeredMembers
     };
 
-    console.log('Stats calculated:', stats);
 
     return NextResponse.json({
       ok: true,
@@ -56,7 +54,6 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error fetching admin stats:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to fetch stats" },
       { status: 500 }

@@ -5,8 +5,6 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log('Logo upload API called');
-    
     const formData = await req.formData();
     const file = formData.get('file') as File;
     
@@ -42,7 +40,6 @@ export async function POST(req: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Error uploading logo:', error);
     return NextResponse.json(
       { ok: false, error: "Failed to upload logo", code: "SERVER_ERROR" },
       { status: 500 }

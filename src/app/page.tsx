@@ -17,22 +17,17 @@ export default function HomePage() {
 
   return (
     <main className="relative w-full h-screen overflow-hidden bg-black">
-      {/* Background video */}
-      <video
-        className="absolute inset-0 w-full h-full object-cover"
-        autoPlay
-        muted
-        playsInline
-      >
-        <source src="/bg.mp4" type="video/mp4" />
-      </video>
+      {/* Background image */}
+      <div
+        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: 'url(/amihuman-bkgrnd.png)' }}
+      />
 
       {/* ENTER button - separate element, positioned below */}
       <div 
-        className="absolute z-10 flex w-full justify-center transition-all duration-1000 ease-out"
-        style={{ 
-          bottom: buttonSlide ? '100px' : 'calc(100vh + 100px)', // Start off-screen, slide to 100px from bottom
-        }}
+        className={`absolute z-10 flex w-full justify-center transition-all duration-1000 ease-out ${
+          buttonSlide ? 'bottom-[100px]' : 'bottom-[calc(100vh+100px)]'
+        }`}
       >
         <button
           className="

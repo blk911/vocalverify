@@ -37,14 +37,11 @@ export default function AdminPage() {
             });
           }
         } catch (err) {
-          console.log(`Member ${memberCode} not found`);
-        }
+          }
       }
       
       setMembers(allMembers);
-      console.log('✅ Loaded members:', allMembers);
-    } catch (err) {
-      console.error('Error loading members:', err);
+      } catch (err) {
       setError('Failed to load members');
     } finally {
       setLoading(false);

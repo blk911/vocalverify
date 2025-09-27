@@ -37,11 +37,8 @@ export class AWSVoiceAuth {
    */
   async transcribeAudio(audioBuffer: string, jobName: string): Promise<VoiceTranscriptionResult> {
     try {
-      console.log(`🎤 Starting transcription job: ${jobName}`);
-      
       // Mock transcription for testing (replace with real AWS when credentials are available)
       if (!validateAWSCredentials()) {
-        console.log('⚠️ AWS credentials not configured, using mock transcription');
         return {
           transcript: "My name is Spencer Wendt",
           confidence: 0.95,
@@ -81,7 +78,6 @@ export class AWSVoiceAuth {
       };
       
     } catch (error: any) {
-      console.error('Transcription error:', error);
       throw new Error(`Transcription failed: ${error.message}`);
     }
   }
@@ -225,7 +221,6 @@ export class AWSVoiceAuth {
       };
       
     } catch (error: any) {
-      console.error('Voice verification error:', error);
       throw new Error(`Voice verification failed: ${error.message}`);
     }
   }
