@@ -27,9 +27,9 @@ export async function POST(req: Request) {
 
     // Verify voice using AWS Transcribe
     const fileName = `voice-${memberCode}-${Date.now()}.webm`;
-    const verificationResult = await awsTranscribeVoiceAuth.verifyVoice(
-      audioBufferData,
-      fileName,
+    const verificationResult = await awsTranscribeVoiceAuth.verifyVoiceAuth(
+      audioBuffer,
+      memberCode,
       expectedPhone
     );
 
