@@ -33,7 +33,7 @@ export class VoiceAuthBenchmark {
     
     try {
       // Test Vercel deployment
-      const response = await fetch('https://simple-next-hhi5q2t19-jsws-projects-217e294d.vercel.app');
+      const response = await fetch('https://vocalverify-hhi5q2t19-jsws-projects-217e294d.vercel.app');
       const isLive = response.ok;
       
       const duration = Date.now() - startTime;
