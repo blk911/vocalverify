@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 
 export default function RegisterPage() {
@@ -147,7 +147,7 @@ export default function RegisterPage() {
               />
               {profilePicture && (
                 <p className="text-sm text-green-600 mt-2">
-                  ✓ {profilePicture.name} selected
+                  ✅ {profilePicture.name} selected
                 </p>
               )}
             </div>
@@ -192,7 +192,7 @@ export default function RegisterPage() {
               <div>
                 <span className="font-medium text-gray-700">Profile Picture:</span>
                 <span className="ml-2 text-gray-900">
-                  {profilePicture ? `✓ ${profilePicture.name}` : 'Not uploaded'}
+                  {profilePicture ? `✅ ${profilePicture.name}` : 'Not uploaded'}
                 </span>
               </div>
             </div>
@@ -226,10 +226,14 @@ export default function RegisterPage() {
             href="/connect" 
             className="text-blue-600 hover:text-blue-800 text-sm"
           >
-            ← Back to Name Entry
+            â† Back to Name Entry
           </a>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -16,6 +16,7 @@ export async function DELETE(req: NextRequest) {
     }
     
     // Delete user from Firestore
+    const db = getDb();
     await db.collection('users').doc(memberCode).delete();
     
     return NextResponse.json({
@@ -30,3 +31,5 @@ export async function DELETE(req: NextRequest) {
     );
   }
 }
+
+

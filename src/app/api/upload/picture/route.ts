@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { storage } from "@/lib/firebaseAdmin";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb, getStorage } from "@/lib/firebaseAdmin";
+import { asyncHandler } from "@/lib/errorHandler";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `profile-pictures/${memberCode}-${new Date().toISOString().replace(/[:.]/g, '-')}-${file.name}`;
     
+    const storage = getStorage();
     const bucket = storage.bucket();
     const fileRef = bucket.file(fileName);
     
@@ -68,6 +70,7 @@ export async function POST(req: NextRequest) {
     });
     
     // Update user profile with picture URL
+    const db = getDb();
     await db.collection('users').doc(memberCode).update({
       profilePicture: url,
       updatedAt: new Date().toISOString()

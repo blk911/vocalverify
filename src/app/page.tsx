@@ -1,62 +1,69 @@
-"use client";
+﻿"use client";
 import { useEffect, useState } from "react";
 
 export default function HomePage() {
-  const [showButton, setShowButton] = useState(false);
-  const [buttonSlide, setButtonSlide] = useState(false);
+  // message sequence
+  const [showFirst, setShowFirst] = useState(false);
+  const [showSecond, setShowSecond] = useState(false);
+
+  // enter button (appears after the sequence; change delay if you want 6.5s)
+  const [showEnter, setShowEnter] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setShowButton(true), 6500); // 6.5s delay
-    return () => clearTimeout(t);
-  }, []);
+    // timeline (ms): 0: first on, 2000: first off + second on, 4000: second off, 4500: show button
+    const t1 = setTimeout(() => setShowFirst(true), 0);
+    const t2 = setTimeout(() => { setShowFirst(false); setShowSecond(true); }, 2000);
+    const t3 = setTimeout(() => setShowSecond(false), 4000);
+    const t4 = setTimeout(() => setShowEnter(true), 4500);
 
-  useEffect(() => {
-    const t = setTimeout(() => setButtonSlide(true), 20); // 0.02s delay for slide
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
   }, []);
 
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-black">
+    <main className="relative h-screen w-full overflow-hidden bg-black">
       {/* Background image */}
       <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: 'url(/amihuman-bkgrnd.png)' }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url(/amihuman-bkgrnd.png)" }}
+        aria-hidden
       />
 
-      {/* Logo and Branding */}
-      <div className="absolute z-10 inset-0 flex flex-col items-center justify-center">
-        <div className="flex items-center space-x-4 mb-8">
-          {/* Logo */}
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-purple-600 rounded-lg flex items-center justify-center shadow-2xl">
-            <span className="text-2xl font-bold text-white">A</span>
-          </div>
-          {/* Brand Text */}
-          <h1 className="text-4xl font-bold text-white tracking-wide">
-            amihuman.net
-          </h1>
-        </div>
+      {/* Two-step messages at 40% from top, horizontally centered */}
+      <div className="pointer-events-none absolute left-1/2 top-[40%] z-10 -translate-x-1/2 -translate-y-1/2">
+        {/* first line */}
+        <p
+          className={[
+            "text-center text-2xl font-semibold text-white transition-opacity duration-500",
+            showFirst ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        >
+          Does Google, Apple, or FB know you're human...?
+        </p>
+
+        {/* second line (occupies space only when visible so there's no layout jump) */}
+        <p
+          className={[
+            "mt-3 text-center text-2xl font-semibold text-white transition-opacity duration-500",
+            showSecond ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+        >
+          ...only your loved ones know!
+        </p>
       </div>
 
-      {/* ENTER button - separate element, positioned below */}
-      <div 
-        className={`absolute z-10 flex w-full justify-center transition-all duration-1000 ease-out ${
-          buttonSlide ? 'bottom-[100px]' : 'bottom-[calc(100vh+100px)]'
-        }`}
-      >
+      {/* ENTER button â€” centered near bottom; fades in after sequence */}
+      <div className="absolute bottom-24 left-1/2 z-10 -translate-x-1/2">
         <button
-          className="
-            px-6 py-2     /* thinner vertical padding */
-            text-base font-semibold tracking-wide
-            text-white    /* white text */
-            bg-gray-600   /* soft grey background */
-            rounded-md    /* smaller corner radius */
-            shadow-md     /* subtle shadow */
-            hover:bg-gray-500 
-            focus:outline-none focus:ring-2 focus:ring-gray-400/60
-            transition-opacity duration-700 opacity-0 data-[show=true]:opacity-100
-          "
-          data-show={showButton}
           onClick={() => (window.location.href = "/connect")}
+          className={[
+            // thinner, soft gray, white letters
+            "px-6 py-2 text-base font-semibold tracking-wide text-white",
+            "bg-gray-600/90 hover:bg-gray-500 rounded-md shadow-md",
+            "focus:outline-none focus:ring-2 focus:ring-gray-400/60",
+            "transition-opacity duration-700",
+            showEnter ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+          aria-hidden={!showEnter}
         >
           ENTER
         </button>
@@ -64,3 +71,6 @@ export default function HomePage() {
     </main>
   );
 }
+
+
+

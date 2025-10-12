@@ -1,38 +1,29 @@
-"use client";
+﻿"use client";
+import ProfileThumbnail from '@/components/member/ProfileThumbnail';
+import { capitalizeName } from '@/utils/stringUtils';
 
 interface TopbarProps {
   memberData?: any;
+  micAvailable?: boolean;
+  cameraAvailable?: boolean;
 }
 
-export default function Topbar({ memberData }: TopbarProps) {
+export default function Topbar({ memberData, micAvailable, cameraAvailable }: TopbarProps) {
   return (
     <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {/* Profile Photo/Thumb */}
-          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-            {memberData?.profilePicture ? (
-              <img 
-                src={memberData.profilePicture} 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Fallback to default avatar if image fails to load
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <div 
-              className={`w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg ${memberData?.profilePicture ? 'hidden' : 'flex'}`}
-            >
-              {memberData?.name ? memberData.name.charAt(0).toUpperCase() : memberData?.fullName ? memberData.fullName.charAt(0).toUpperCase() : 'S'}
-            </div>
-          </div>
+          <ProfileThumbnail
+            memberCode={memberData?.memberCode || memberData?.phone || ''}
+            memberName={memberData?.name || memberData?.fullName || 'Member'}
+            size="xl"
+            profilePicture={memberData?.profilePicture}
+          />
           
           <div>
             <h1 className="text-2xl font-bold text-gray-800">
-              Welcome, {memberData?.name || memberData?.fullName || 'Spencer Wendt'}
+              Welcome, {capitalizeName(memberData?.name || memberData?.fullName) || 'Member'}
             </h1>
             <p className="text-gray-600 text-sm">
               AM I HUMAN.net Member Dashboard
@@ -41,6 +32,36 @@ export default function Topbar({ memberData }: TopbarProps) {
         </div>
         
         <div className="flex items-center space-x-4">
+          {/* Microphone Status Icon */}
+          <div className="flex items-center space-x-2">
+            {micAvailable ? (
+              <div className="flex items-center space-x-1 text-green-600" title="Microphone Available">
+                <span className="text-lg">🎤</span>
+                <span className="text-xs">Mic Ready</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1 text-red-600" title="Microphone Not Available">
+                <span className="text-lg">🎤</span>
+                <span className="text-xs">Connect your mic</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Camera Status Icon */}
+          <div className="flex items-center space-x-2">
+            {cameraAvailable ? (
+              <div className="flex items-center space-x-1 text-green-600" title="Camera Available">
+                <span className="text-lg">📷</span>
+                <span className="text-xs">Camera Ready</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1 text-red-600" title="Camera Not Available">
+                <span className="text-lg">📷</span>
+                <span className="text-xs">Connect your camera</span>
+              </div>
+            )}
+          </div>
+          
           <div className="text-right">
             <p className="text-sm text-gray-600">Member Code</p>
             <p className="font-mono text-sm font-medium">
@@ -52,3 +73,7 @@ export default function Topbar({ memberData }: TopbarProps) {
     </div>
   );
 }
+
+
+
+

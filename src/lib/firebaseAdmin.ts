@@ -1,46 +1,65 @@
+import "server-only";
+import type { App } from "firebase-admin/app";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage, type Storage } from "firebase-admin/storage";
+import { initializeProductionConfig } from "./productionConfig";
+import { autoInitializeDatabase } from "./databaseInit";
 
-function getApp() {
-  if (getApps().length) return getApps()[0];
-
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    const json = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-    return initializeApp({
-      credential: cert(json),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
-  }
-
-  if (
-    process.env.FIREBASE_PROJECT_ID &&
-    process.env.FIREBASE_CLIENT_EMAIL &&
-    process.env.FIREBASE_PRIVATE_KEY
-  ) {
-    return initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-      }),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
-  }
-
-  // Fallback to service account file for local development
-  try {
-    const serviceAccount = require("../../credentials/service-account.json");
-    return initializeApp({
-      credential: cert(serviceAccount),
-      storageBucket: "trustgame-8lerq.appspot.com",
-    });
-  } catch (error) {
-    }
-
-  throw new Error("Firebase Admin credentials missing");
+declare global {
+  // eslint-disable-next-line no-var, camelcase
+  var __vv_admin_app__: App | undefined;
+  // eslint-disable-next-line no-var, camelcase
+  var __vv_admin_db__: Firestore | undefined;
+  // eslint-disable-next-line no-var, camelcase
+  var __vv_admin_storage__: Storage | undefined;
 }
 
-const app = getApp();
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+function need(name: string): string {
+  const v = process.env[name];
+  if (!v || !v.trim()) throw new Error(`[firebaseAdmin] Missing env ${name}`);
+  return v;
+}
+function normalizeKey(k: string) {
+  if ((k.startsWith("\"") && k.endsWith("\"")) || (k.startsWith("'") && k.endsWith("'"))) k = k.slice(1, -1);
+  return k.replace(/\\n/g, "\n");
+}
+
+export function getDb(): Firestore {
+  if (globalThis.__vv_admin_db__) return globalThis.__vv_admin_db__!;
+  
+  // Initialize production configuration
+  if (!initializeProductionConfig()) {
+    throw new Error('Failed to initialize production configuration');
+  }
+  
+  if (!getApps().length && !globalThis.__vv_admin_app__) {
+    // Use individual environment variables
+    const projectId = need("FIREBASE_PROJECT_ID");
+    const clientEmail = need("FIREBASE_CLIENT_EMAIL");
+    const privateKey = normalizeKey(need("FIREBASE_PRIVATE_KEY"));
+    const app = initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), projectId });
+    globalThis.__vv_admin_app__ = app;
+  }
+  const db = getFirestore(globalThis.__vv_admin_app__!);
+  
+  // Production database configuration
+  // No emulator dependency - always use production Firebase
+  globalThis.__vv_admin_db__ = db;
+  return db;
+}
+
+export function getStorage(): Storage {
+  if (globalThis.__vv_admin_storage__) return globalThis.__vv_admin_storage__!;
+  if (!getApps().length && !globalThis.__vv_admin_app__) {
+    // Use individual environment variables
+    const projectId = need("FIREBASE_PROJECT_ID");
+    const clientEmail = need("FIREBASE_CLIENT_EMAIL");
+    const privateKey = normalizeKey(need("FIREBASE_PRIVATE_KEY"));
+    const app = initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), projectId });
+    globalThis.__vv_admin_app__ = app;
+  }
+  const storage = getStorage(globalThis.__vv_admin_app__!);
+  globalThis.__vv_admin_storage__ = storage;
+  return storage;
+}

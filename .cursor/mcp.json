@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "aih-dev": {
+      "command": "npx",
+      "args": ["-y", "tsx", "tools/mcp-aih-dev/server.ts"]
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+

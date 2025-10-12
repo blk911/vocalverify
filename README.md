@@ -16,7 +16,7 @@ VocalVerify is a **voice-authenticated AI OS prototype** built with **Next.js 15
 - [TypeScript](https://www.typescriptlang.org/)
 
 ## 📂 Project Structure
-simple-next/
+amihuman/
 ├─ src/
 │ ├─ app/ # Next.js app routes
 │ ├─ lib/ # Firebase Admin + helpers

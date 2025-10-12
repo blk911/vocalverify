@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get user profile from Firestore
+    const db = getDb();
     const userDoc = await db.collection('users').doc(memberCode).get();
     
     if (!userDoc.exists) {
@@ -40,6 +41,11 @@ export async function GET(req: NextRequest) {
         profilePicture: userData?.profilePicture || '',
         status: userData?.status || 'pending',
         createdAt: userData?.createdAt || null,
+        // ⚡ CRITICAL: SPONSOR FIELDS
+        sponsorId: userData?.sponsorId || null,
+        sponsorName: userData?.sponsorName || null,
+        sponsorMemberCode: userData?.sponsorMemberCode || null,
+        sponsorProfilePicture: userData?.sponsorProfilePicture || null,
         // Profile completion steps
         profileSteps: {
           primaryVoice: userData?.profileSteps?.primaryVoice || false,
@@ -84,6 +90,7 @@ export async function PUT(req: NextRequest) {
     if (profileSteps !== undefined) updateData.profileSteps = profileSteps;
     if (currentStep !== undefined) updateData.currentStep = currentStep;
 
+    const db = getDb();
     await db.collection('users').doc(memberCode).update(updateData);
 
 

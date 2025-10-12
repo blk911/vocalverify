@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     };
 
     // Store biometric profile in database
+    const db = getDb();
     await db.collection("voice_biometrics").doc(uploadId).set(biometricProfile, { merge: true });
 
     return NextResponse.json({

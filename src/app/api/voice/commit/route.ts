@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db, storage } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const [meta] = await fileRef.getMetadata().catch(() => [{ size: 0 } as any]);
     
     // Create database record for voice upload
+    const db = getDb();
     await db.collection("voice_uploads").doc(uploadId).set(
       {
         createdAt: new Date().toISOString(),

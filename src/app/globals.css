@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Progress bar with dynamic width using data attribute */
+.progress-container[data-progress] .progress-bar {
+  width: calc(var(--progress-percent) * 1%);
+}
+
+/* Mirror video horizontally */
+.video-mirror {
+  transform: scaleX(-1);
+}
+

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { awsTranscribeVoiceAuth } from "@/lib/awsTranscribe";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     }
 
     // Get user data
+    const db = getDb();
     const userDoc = await db.collection('users').doc(memberCode).get();
     if (!userDoc.exists) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

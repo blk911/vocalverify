@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Check if user already exists
+    const db = getDb();
     const userRef = db.collection('users').doc(memberCode);
     const userDoc = await userRef.get();
     

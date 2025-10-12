@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from 'react';
 
 interface SidebarProps {
@@ -10,12 +10,13 @@ interface SidebarProps {
 export default function Sidebar({ activeSection = 'overview', onSectionChange, onLogout }: SidebarProps) {
   const menuItems = [
     { id: 'overview', label: 'Home', icon: '🏠' },
-    { id: 'invites', label: 'Invites', icon: '✉️' },
+    { id: 'invites', label: 'Invites', icon: '📤' },
     { id: 'groups', label: 'Groups', icon: '👥' },
     { id: 'network', label: 'Network', icon: '🌐' },
     { id: 'vaults', label: 'Vaults', icon: '🔒' },
+    { id: 'profile', label: 'Profile', icon: '👤' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
-    { id: 'admin', label: 'Admin', icon: '👑' },
+    { id: 'admin', label: 'Admin', icon: '🔧' },
     { id: 'notices', label: 'Notices', icon: '📢' }
   ];
 
@@ -28,25 +29,27 @@ export default function Sidebar({ activeSection = 'overview', onSectionChange, o
             <button
               key={item.id}
               onClick={() => onSectionChange?.(item.id)}
-              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
                 activeSection === item.id
-                  ? 'bg-blue-100 text-blue-700 font-medium'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-blue-100 text-blue-700 border-l-4 border-blue-500'
+                  : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <span className="mr-3">{item.icon}</span>
-              {item.label}
+              <span className="text-xl">{item.icon}</span>
+              <span className="font-medium">{item.label}</span>
             </button>
           ))}
         </nav>
-        {onLogout && (
+        
+        <div className="mt-8 pt-6 border-t border-gray-200">
           <button
-            onClick={onLogout}
-            className="w-full mt-6 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            onClick={onLogout || (() => window.location.href = '/')}
+            className="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
-            🚪 Logout
+            <span className="text-xl">🚪</span>
+            <span className="font-medium">Logout</span>
           </button>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -1,230 +1,270 @@
-import { TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand } from '@aws-sdk/client-transcribe';
-import { awsConfig, validateAWSCredentials } from '@/config/aws';
+import { TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand } from "@aws-sdk/client-transcribe";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { awsConfig } from "@/config/aws";
 
-// Initialize Transcribe client
+// AWS Clients
 const transcribeClient = new TranscribeClient({
   region: awsConfig.region,
   credentials: {
     accessKeyId: awsConfig.accessKeyId!,
-    secretAccessKey: awsConfig.secretAccessKey!
-  }
+    secretAccessKey: awsConfig.secretAccessKey!,
+  },
 });
 
-export interface VoiceTranscriptionResult {
-  transcript: string;
+const s3Client = new S3Client({
+  region: awsConfig.region,
+  credentials: {
+    accessKeyId: awsConfig.accessKeyId!,
+    secretAccessKey: awsConfig.secretAccessKey!,
+  },
+});
+
+// Voice verification result interface
+export interface VoiceVerificationResult {
+  isVerified: boolean;
   confidence: number;
-  words: Array<{
-    word: string;
-    startTime: number;
-    endTime: number;
-    confidence: number;
-  }>;
+  transcribedText: string;
+  securityLevel: 'low' | 'medium' | 'high';
+  error?: string;
+  processingTime: number;
 }
 
-export interface VoiceBiometricData {
-  pitch: number;
-  tone: number;
-  cadence: number;
-  volume: number;
-  duration: number;
-  wordCount: number;
-  averageWordLength: number;
-}
+// AWS Transcribe Voice Authentication class
+export class AWSTranscribeVoiceAuth {
+  private bucketName: string;
 
-export class AWSVoiceAuth {
+  constructor() {
+    this.bucketName = process.env.AWS_S3_BUCKET_NAME || 'amihuman-voice-files';
+  }
+
   /**
-   * Transcribe audio to text
+   * Upload audio file to S3
    */
-  async transcribeAudio(audioBuffer: string, jobName: string): Promise<VoiceTranscriptionResult> {
+  private async uploadToS3(audioBuffer: string, fileName: string): Promise<string> {
     try {
-      // Mock transcription for testing (replace with real AWS when credentials are available)
-      if (!validateAWSCredentials()) {
-        return {
-          transcript: "My name is Spencer Wendt",
-          confidence: 0.95,
-          words: [
-            { word: "My", startTime: 0, endTime: 0.5, confidence: 0.98 },
-            { word: "name", startTime: 0.5, endTime: 1.0, confidence: 0.96 },
-            { word: "is", startTime: 1.0, endTime: 1.2, confidence: 0.94 },
-            { word: "Spencer", startTime: 1.2, endTime: 1.8, confidence: 0.92 },
-            { word: "Wendt", startTime: 1.8, endTime: 2.2, confidence: 0.90 }
-          ]
-        };
-      }
+      const buffer = Buffer.from(audioBuffer, 'base64');
       
-      // Start transcription job
-      const startCommand = new StartTranscriptionJobCommand({
+      const command = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: `voice-auth/${fileName}`,
+        Body: buffer,
+        ContentType: 'audio/webm',
+        ACL: 'private',
+      });
+
+      await s3Client.send(command);
+      return `s3://${this.bucketName}/voice-auth/${fileName}`;
+    } catch (error) {
+      throw new Error(`Failed to upload to S3: ${error}`);
+    }
+  }
+
+  /**
+   * Start transcription job
+   */
+  private async startTranscriptionJob(audioUri: string, jobName: string): Promise<void> {
+    try {
+      const command = new StartTranscriptionJobCommand({
         TranscriptionJobName: jobName,
         LanguageCode: awsConfig.transcribe.languageCode,
         MediaFormat: awsConfig.transcribe.mediaFormat,
         Media: {
-          MediaFileUri: `data:audio/webm;base64,${audioBuffer}`
+          MediaFileUri: audioUri,
         },
         Settings: {
           ShowSpeakerLabels: false,
-          MaxSpeakerLabels: 1
-        }
+          MaxSpeakerLabels: 1,
+        },
       });
-      
-      await transcribeClient.send(startCommand);
-      
-      // Wait for completion and get results
-      const result = await this.waitForTranscription(jobName);
-      
-      return {
-        transcript: result.transcript,
-        confidence: result.confidence,
-        words: result.words || []
-      };
-      
-    } catch (error: any) {
-      throw new Error(`Transcription failed: ${error.message}`);
+
+      await transcribeClient.send(command);
+    } catch (error) {
+      throw new Error(`Failed to start transcription: ${error}`);
     }
   }
-  
+
   /**
-   * Wait for transcription to complete
+   * Get transcription result
    */
-  private async waitForTranscription(jobName: string, maxWaitTime: number = 30000): Promise<any> {
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < maxWaitTime) {
-      const getCommand = new GetTranscriptionJobCommand({
-        TranscriptionJobName: jobName
+  private async getTranscriptionResult(jobName: string): Promise<string> {
+    try {
+      const command = new GetTranscriptionJobCommand({
+        TranscriptionJobName: jobName,
       });
+
+      let result = await transcribeClient.send(command);
       
-      const response = await transcribeClient.send(getCommand);
-      const job = response.TranscriptionJob;
+      // Poll for completion
+      let attempts = 0;
+      const maxAttempts = 30; // 5 minutes max
       
-      if (job?.TranscriptionJobStatus === 'COMPLETED') {
-        // Parse the transcript from the results
-        const transcript = job.Transcript?.TranscriptFileUri;
-        if (transcript) {
-          // In a real implementation, you'd fetch the transcript file
-          // For now, return a mock result
-          return {
-            transcript: "Mock transcript from AWS Transcribe",
-            confidence: 0.95,
-            words: []
-          };
-        }
-      } else if (job?.TranscriptionJobStatus === 'FAILED') {
-        throw new Error('Transcription job failed');
+      while (result.TranscriptionJob?.TranscriptionJobStatus === 'IN_PROGRESS' && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+        result = await transcribeClient.send(command);
+        attempts++;
       }
-      
-      // Wait 2 seconds before checking again
-      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      if (result.TranscriptionJob?.TranscriptionJobStatus === 'COMPLETED') {
+        // Fetch the transcription result from S3
+        const transcriptUri = result.TranscriptionJob.Transcript?.TranscriptFileUri;
+        if (transcriptUri) {
+          // Parse S3 URI to get bucket and key
+          const url = new URL(transcriptUri);
+          const bucket = url.hostname.split('.')[0];
+          const key = url.pathname.substring(1);
+          
+          const getObjectCommand = new GetObjectCommand({
+            Bucket: bucket,
+            Key: key,
+          });
+          
+          const transcriptResponse = await s3Client.send(getObjectCommand);
+          const transcriptData = await transcriptResponse.Body?.transformToString();
+          
+          if (transcriptData) {
+            const transcript = JSON.parse(transcriptData);
+            return transcript.results.transcripts[0]?.transcript || '';
+          }
+        }
+      }
+
+      throw new Error('Transcription failed or timed out');
+    } catch (error) {
+      throw new Error(`Failed to get transcription result: ${error}`);
+    }
+  }
+
+  /**
+   * Analyze voice for anti-spoofing
+   */
+  private analyzeVoiceSecurity(audioBuffer: string, transcribedText: string): {
+    confidence: number;
+    securityLevel: 'low' | 'medium' | 'high';
+  } {
+    // Mock voice analysis - in production, this would use AWS Voice ID or similar
+    const audioLength = audioBuffer.length;
+    const textLength = transcribedText.length;
+    
+    // Basic security checks
+    let confidence = 0.5;
+    let securityLevel: 'low' | 'medium' | 'high' = 'low';
+    
+    // Audio length check (minimum 2 seconds)
+    if (audioLength > 10000) confidence += 0.2;
+    
+    // Text length check (minimum 3 words)
+    const wordCount = transcribedText.split(' ').length;
+    if (wordCount >= 3) confidence += 0.2;
+    
+    // Text quality check (no repeated characters)
+    const hasRepeatedChars = /(.)\1{3,}/.test(transcribedText);
+    if (!hasRepeatedChars) confidence += 0.1;
+    
+    // Determine security level
+    if (confidence >= 0.8) {
+      securityLevel = 'high';
+    } else if (confidence >= 0.6) {
+      securityLevel = 'medium';
     }
     
-    throw new Error('Transcription timeout');
+    return { confidence, securityLevel };
   }
-  
-  /**
-   * Analyze voice biometrics
-   */
-  analyzeVoiceBiometrics(audioBuffer: string, transcript: string): VoiceBiometricData {
-    // Mock voice biometric analysis
-    // In a real implementation, you'd use audio processing libraries
-    const duration = 5.2; // seconds
-    const wordCount = transcript.split(' ').length;
-    
-    return {
-      pitch: 150 + Math.random() * 50, // Hz
-      tone: 20 + Math.random() * 20,   // dB
-      cadence: 1.0 + Math.random() * 0.5, // words per second
-      volume: 60 + Math.random() * 20, // dB
-      duration,
-      wordCount,
-      averageWordLength: transcript.length / wordCount
-    };
-  }
-  
-  /**
-   * Compare voice biometrics
-   */
-  compareVoiceBiometrics(
-    stored: VoiceBiometricData, 
-    current: VoiceBiometricData
-  ): { match: boolean; confidence: number; details: string } {
-    const pitchDiff = Math.abs(stored.pitch - current.pitch) / stored.pitch;
-    const toneDiff = Math.abs(stored.tone - current.tone) / stored.tone;
-    const cadenceDiff = Math.abs(stored.cadence - current.cadence) / stored.cadence;
-    
-    const pitchMatch = pitchDiff < 0.15; // 15% tolerance
-    const toneMatch = toneDiff < 0.20;   // 20% tolerance
-    const cadenceMatch = cadenceDiff < 0.25; // 25% tolerance
-    
-    const confidence = (
-      (pitchMatch ? 0.4 : 0) +
-      (toneMatch ? 0.3 : 0) +
-      (cadenceMatch ? 0.3 : 0)
-    );
-    
-    const match = confidence >= awsConfig.voiceAuth.biometricThreshold;
-    
-    return {
-      match,
-      confidence,
-      details: `Pitch: ${pitchMatch ? '✅' : '❌'}, Tone: ${toneMatch ? '✅' : '❌'}, Cadence: ${cadenceMatch ? '✅' : '❌'}`
-    };
-  }
-  
+
   /**
    * Verify voice authentication
    */
   async verifyVoiceAuth(
-    audioBuffer: string, 
-    memberCode: string, 
-    expectedContent: string
-  ): Promise<{
-    contentMatch: boolean;
-    biometricMatch: boolean;
-    overallMatch: boolean;
-    confidence: number;
-    details: string;
-  }> {
+    audioBuffer: string,
+    memberCode: string,
+    expectedPhone?: string
+  ): Promise<VoiceVerificationResult> {
+    const startTime = Date.now();
+    
     try {
+      // Generate unique job name
       const jobName = `voice-auth-${memberCode}-${Date.now()}`;
+      const fileName = `${jobName}.webm`;
       
-      // Transcribe audio
-      const transcription = await this.transcribeAudio(audioBuffer, jobName);
+      // Upload audio to S3
+      const audioUri = await this.uploadToS3(audioBuffer, fileName);
       
-      // Check content match
-      const contentMatch = transcription.transcript.toLowerCase().includes(expectedContent.toLowerCase());
+      // Start transcription
+      await this.startTranscriptionJob(audioUri, jobName);
       
-      // Analyze voice biometrics
-      const currentBiometrics = this.analyzeVoiceBiometrics(audioBuffer, transcription.transcript);
+      // Get transcription result
+      const transcribedText = await this.getTranscriptionResult(jobName);
       
-      // TODO: Get stored biometrics from database
-      const storedBiometrics: VoiceBiometricData = {
-        pitch: 150,
-        tone: 25,
-        cadence: 1.2,
-        volume: 70,
-        duration: 5.0,
-        wordCount: 3,
-        averageWordLength: 4.5
-      };
+      // Analyze voice security
+      const { confidence, securityLevel } = this.analyzeVoiceSecurity(audioBuffer, transcribedText);
       
-      // Compare biometrics
-      const biometricComparison = this.compareVoiceBiometrics(storedBiometrics, currentBiometrics);
+      // Check if transcription matches expected content
+      let isVerified = false;
       
-      const overallMatch = contentMatch && biometricComparison.match;
-      const confidence = (transcription.confidence + biometricComparison.confidence) / 2;
+      if (expectedPhone) {
+        // Check if transcribed text contains phone digits
+        const phoneDigits = expectedPhone.replace(/\D/g, '');
+        const transcribedDigits = transcribedText.replace(/\D/g, '');
+        isVerified = transcribedDigits.includes(phoneDigits) && confidence >= awsConfig.voiceAuth.minConfidence;
+      } else {
+        // Basic verification based on confidence
+        isVerified = confidence >= awsConfig.voiceAuth.minConfidence;
+      }
+      
+      const processingTime = Date.now() - startTime;
       
       return {
-        contentMatch,
-        biometricMatch: biometricComparison.match,
-        overallMatch,
+        isVerified,
         confidence,
-        details: `Content: ${contentMatch ? '✅' : '❌'}, Voice: ${biometricComparison.details}`
+        transcribedText,
+        securityLevel,
+        processingTime,
       };
       
     } catch (error: any) {
-      throw new Error(`Voice verification failed: ${error.message}`);
+      const processingTime = Date.now() - startTime;
+      
+      return {
+        isVerified: false,
+        confidence: 0,
+        transcribedText: '',
+        securityLevel: 'low',
+        error: error.message,
+        processingTime,
+      };
+    }
+  }
+
+  /**
+   * Test AWS Transcribe connection
+   */
+  async testConnection(): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Test S3 connection
+      const testCommand = new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: 'test-connection.txt',
+        Body: 'test',
+        ContentType: 'text/plain',
+      });
+      
+      await s3Client.send(testCommand);
+      
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
     }
   }
 }
 
-// Export singleton
-export const awsTranscribeVoiceAuth = new AWSVoiceAuth();
+// Export singleton instance
+export const awsTranscribeVoiceAuth = new AWSTranscribeVoiceAuth();
+
+
+
+
+
+
+
+
+
+

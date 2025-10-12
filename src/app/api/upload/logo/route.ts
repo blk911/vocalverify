@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { storage } from "@/lib/firebaseAdmin";
+import { getDb, getStorage } from "@/lib/firebaseAdmin";
+import { asyncHandler } from "@/lib/errorHandler";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -18,6 +20,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `logos/${new Date().toISOString().replace(/[:.]/g, '-')}-${file.name}`;
     
+    const storage = getStorage();
     const bucket = storage.bucket();
     const fileRef = bucket.file(fileName);
     

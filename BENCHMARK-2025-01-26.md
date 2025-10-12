@@ -1,7 +1,7 @@
 # CODEBASE BENCHMARK - January 26, 2025
 
 ## PROJECT OVERVIEW
-**Project Name**: simple-next  
+**Project Name**: amihuman  
 **Framework**: Next.js 15.5.2  
 **Type**: Voice Authentication System  
 **Domain**: amihuman.net  
@@ -167,10 +167,10 @@
 - **Build**: ✅ Successful
 
 ### Production (Vercel)
-- **Repository**: https://github.com/blk911/vocalverify.git
+- **Repository**: https://github.com/blk911/amihuman.git
 - **Deployment**: ✅ Automatic via GitHub
 - **Status**: ✅ Live and functional
-- **Domain**: simple-next deployment
+- **Domain**: amihuman deployment
 
 ---
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from 'react';
 
 interface InteractiveGuideProps {
@@ -17,8 +17,8 @@ export default function InteractiveGuide({ isOpen, onClose, onFinish }: Interact
       action: "Next"
     },
     {
-      title: "Voice Recording",
-      content: "You'll need to record your voice for verification purposes.",
+      title: "Profile Setup",
+      content: "Complete your profile information to activate your membership.",
       action: "Next"
     },
     {
@@ -76,3 +76,7 @@ export default function InteractiveGuide({ isOpen, onClose, onFinish }: Interact
     </div>
   );
 }
+
+
+
+

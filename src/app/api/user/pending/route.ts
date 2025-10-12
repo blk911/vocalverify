@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
+    const db = getDb();
     const usersRef = db.collection('users');
     const snapshot = await usersRef.where('status', '==', 'pending').get();
     

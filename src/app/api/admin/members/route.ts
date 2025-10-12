@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/firebaseAdmin";
+import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
   try {
     
     // Get all users from Firestore
+    const db = getDb();
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
   try {
     
     // Get all users from Firestore
+    const db = getDb();
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,

@@ -113,3 +113,7 @@ export class DeviceFingerprint {
 
 // Export singleton instance
 export const deviceFingerprint = DeviceFingerprint.getInstance();
+
+
+
+
