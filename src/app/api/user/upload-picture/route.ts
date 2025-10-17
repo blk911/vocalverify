@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/firebaseAdmin";
+import { createOrGetSameSponsorTU, createOrGetTriangleCloseTU } from "@/lib/trustUnits";
+import { getFeatureFlags, logFeatureFlags } from "@/lib/featureFlags";
 
 export const runtime = "nodejs";
 
@@ -101,9 +103,30 @@ export async function POST(req: NextRequest) {
         console.log(`✅ [UPLOAD-PICTURE] Trust connection created: ${connectionRef.id}`);
         console.log(`✅ [UPLOAD-PICTURE] Connection: ${sponsorMemberCode} ↔ ${memberCode}`);
         
-        // 3. Create or update trust unit
-        console.log('[UPLOAD-PICTURE] Step 3: Creating/updating trust unit...');
-        await createOrUpdateTrustUnit(db, sponsorMemberCode, memberCode);
+        // 3. Create or update Trust Unit with ALL members of same sponsor
+        console.log('[UPLOAD-PICTURE] Step 3: Creating/updating Trust Unit...');
+        try {
+          // Find ALL members with the same sponsor
+          const allMembersSnapshot = await db.collection('users')
+            .where('sponsorMemberCode', '==', sponsorMemberCode)
+            .where('status', '==', 'registered')
+            .get();
+          
+          const allMemberCodes = allMembersSnapshot.docs.map(doc => doc.id);
+          console.log(`[UPLOAD-PICTURE] Found ${allMemberCodes.length} members with sponsor ${sponsorMemberCode}:`, allMemberCodes);
+          
+          if (allMemberCodes.length >= 2) {
+            const tuResult = await createOrGetSameSponsorTU(
+              sponsorMemberCode,
+              allMemberCodes
+            );
+            console.log(`✅ [UPLOAD-PICTURE] Trust Unit result:`, tuResult);
+          } else {
+            console.log(`[UPLOAD-PICTURE] Not enough members (${allMemberCodes.length}) for Trust Unit`);
+          }
+        } catch (tuError: any) {
+          console.error('[UPLOAD-PICTURE] Trust Unit creation error:', tuError);
+        }
         
         console.log(`\n🎉🎉🎉 [UPLOAD-PICTURE] SPONSOR DIVISIONS COMPLETE 🎉🎉🎉\n`);
       } catch (divError: any) {
@@ -135,48 +158,3 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Helper: Create or update trust unit with sponsor and new member
- */
-async function createOrUpdateTrustUnit(db: any, sponsorCode: string, memberCode: string) {
-  try {
-    // Check if sponsor already has a trust unit
-    const sponsorUnitQuery = await db.collection('trustUnits')
-      .where('members', 'array-contains', sponsorCode)
-      .limit(1)
-      .get();
-    
-    if (!sponsorUnitQuery.empty) {
-      // Sponsor has a unit, add new member to it
-      const unitDoc = sponsorUnitQuery.docs[0];
-      const unitData = unitDoc.data();
-      const currentMembers = unitData.members || [];
-      
-      // Only add if not already in unit
-      if (!currentMembers.includes(memberCode)) {
-        await unitDoc.ref.update({
-          members: [...currentMembers, memberCode],
-          size: currentMembers.length + 1,
-          updatedAt: new Date()
-        });
-        console.log(`✅ Added ${memberCode} to existing trust unit ${unitDoc.id}`);
-      }
-    } else {
-      // Create new trust unit with sponsor and new member
-      const newUnitData = {
-        members: [sponsorCode, memberCode],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        size: 2,
-        sponsorCode: sponsorCode,
-        status: 'active'
-      };
-      
-      const unitRef = await db.collection('trustUnits').add(newUnitData);
-      console.log(`✅ Created new trust unit: ${unitRef.id}`);
-    }
-  } catch (error) {
-    console.error('Error in createOrUpdateTrustUnit:', error);
-    throw error;
-  }
-}

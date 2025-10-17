@@ -4,7 +4,7 @@
  */
 
 // Mock environment variables
-process.env.NODE_ENV = 'test';
+(process.env as any).NODE_ENV = 'test';
 process.env.FIREBASE_PROJECT_ID = 'test-project';
 process.env.FIREBASE_CLIENT_EMAIL = 'test@test.com';
 process.env.FIREBASE_PRIVATE_KEY = 'test-key';
@@ -76,11 +76,11 @@ jest.mock('next/server', () => ({
 }));
 
 // Global test utilities
-global.testUtils = {
+(global as any).testUtils = {
   createMockRequest: (body = {}, headers = {}) => ({
     json: () => Promise.resolve(body),
     headers: {
-      get: (name) => headers[name] || null
+      get: (name: any) => (headers as any)[name] || null
     }
   }),
   
@@ -94,7 +94,7 @@ global.testUtils = {
     ...overrides
   }),
   
-  createMockApiResponse: (data, status = 200) => ({
+  createMockApiResponse: (data: any, status = 200) => ({
     ok: status >= 200 && status < 300,
     data,
     status

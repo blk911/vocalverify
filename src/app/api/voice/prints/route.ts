@@ -30,12 +30,12 @@ export async function GET(req: NextRequest) {
     
     const voicePrints = {
       profileVoice: {
-        audioUrl: userData.voiceUrl || null,
-        hasVoice: userData.hasVoice || false
+        audioUrl: userData?.voiceUrl || null,
+        hasVoice: userData?.hasVoice || false
       },
       phoneVoice: {
-        audioUrl: userData.phoneVoiceUrl || null,
-        hasVoice: userData.hasPhoneVoice || false
+        audioUrl: userData?.phoneVoiceUrl || null,
+        hasVoice: userData?.hasPhoneVoice || false
       }
     };
 

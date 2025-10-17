@@ -73,7 +73,7 @@ function CompleteRegistrationContent() {
       stream.getTracks().forEach(track => track.stop());
       
       setCameraAvailable(true);
-      console.log('âœ… Camera available');
+      console.log('✅ Camera available');
     } catch (error: any) {
       console.error('âŒ Camera not available:', error);
       

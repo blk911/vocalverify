@@ -45,7 +45,7 @@ export default function SelfieCaptureModal({ isOpen, onClose, onConfirm, memberN
         console.log('✅ Camera stream started');
       }
     } catch (error) {
-      console.error('âŒ Failed to start camera stream:', error);
+      console.error('❌ Failed to start camera stream:', error);
     }
   };
 
@@ -327,7 +327,7 @@ export default function SelfieCaptureModal({ isOpen, onClose, onConfirm, memberN
                   disabled={isUploading}
                   className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-400"
                 >
-                  {isUploading ? 'â³ Uploading...' : 'âœ… Confirm & Upload'}
+                  {isUploading ? '⏳ Uploading...' : '✅ Confirm & Upload'}
                 </button>
               </>
             )}
@@ -337,7 +337,3 @@ export default function SelfieCaptureModal({ isOpen, onClose, onConfirm, memberN
     </div>
   );
 }
-
-
-
-

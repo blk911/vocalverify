@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     
     // Find member's trust unit
     const trustUnitQuery = await db.collection('trustUnits')
-      .where('members', 'array-contains', memberCode)
+      .where('memberCodes', 'array-contains', memberCode)
       .limit(1)
       .get();
     
@@ -83,14 +83,32 @@ export async function GET(req: NextRequest) {
       size: trustUnitData.members?.length || 0
     });
     
+    // ✅ Get sponsor profile picture
+    let sponsorProfilePicture = null;
+    if (trustUnitData.sponsorCode && trustUnitData.sponsorCode !== '0000000000') {
+      try {
+        const sponsorDoc = await db.collection('users').doc(trustUnitData.sponsorCode).get();
+        if (sponsorDoc.exists) {
+          const sponsorData = sponsorDoc.data();
+          sponsorProfilePicture = sponsorData?.profilePicture || null;
+        }
+      } catch (error) {
+        console.error('Error fetching sponsor profile picture:', error);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       status: 'active',
       memberCode,
       trustUnit: {
         id: trustUnitDoc.id,
-        size: trustUnitData.members?.length || 0,
-        members: trustUnitData.members || [],
+        size: trustUnitData.memberCodes?.length || 0,
+        members: trustUnitData.memberCodes || [],
+        tuName: trustUnitData.tuName || null, // ✅ NEW: Include TU name
+        sponsorCode: trustUnitData.sponsorCode || null, // ✅ NEW: Include sponsor code
+        sponsorName: trustUnitData.sponsorName || null, // ✅ NEW: Include sponsor name
+        sponsorProfilePicture: sponsorProfilePicture, // ✅ NEW: Include sponsor profile picture
         createdAt: trustUnitData.createdAt,
         updatedAt: trustUnitData.updatedAt
       },
@@ -110,6 +128,10 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+
+
+
 
 
 

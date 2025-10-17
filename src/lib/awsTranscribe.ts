@@ -66,8 +66,8 @@ export class AWSTranscribeVoiceAuth {
     try {
       const command = new StartTranscriptionJobCommand({
         TranscriptionJobName: jobName,
-        LanguageCode: awsConfig.transcribe.languageCode,
-        MediaFormat: awsConfig.transcribe.mediaFormat,
+        LanguageCode: awsConfig.transcribe.languageCode as any,
+        MediaFormat: awsConfig.transcribe.mediaFormat as any,
         Media: {
           MediaFileUri: audioUri,
         },

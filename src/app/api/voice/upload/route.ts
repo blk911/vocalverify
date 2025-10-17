@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const POST = asyncHandler(async (req: Request) => {
-  logger.api.request('POST', '/api/voice/upload');
+  logger.info('API Request: POST /api/voice/upload', 'API');
   
   const { searchParams } = new URL(req.url);
   const uploadId = searchParams.get("uploadId");
@@ -77,7 +77,7 @@ export const POST = asyncHandler(async (req: Request) => {
     status: 'uploaded'
   });
   
-  logger.api.response('POST', '/api/voice/upload', 200);
+  logger.info('API Response: POST /api/voice/upload - 200', 'API');
   
   return NextResponse.json({ 
     ok: true, 

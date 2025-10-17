@@ -56,8 +56,8 @@ export async function POST(req: NextRequest) {
       console.log('[CAPTURE-PHONE] Matched invite found:', matchedInvite.id);
       
       // ✅ CRITICAL: VALIDATE PHONE MATCHES INVITE
-      if (matchedInvite.phone && matchedInvite.phone.trim()) {
-        const invitePhone = matchedInvite.phone.trim().replace(/\D/g, '');
+      if ((matchedInvite as any).phone && (matchedInvite as any).phone.trim()) {
+        const invitePhone = (matchedInvite as any).phone.trim().replace(/\D/g, '');
         const enteredPhone = phoneDigits.replace(/\D/g, '');
         
         if (invitePhone !== enteredPhone) {
@@ -71,36 +71,66 @@ export async function POST(req: NextRequest) {
             ok: false,
             error: "Phone number does not match the invite. Please use the phone number associated with this invitation.",
             code: "PHONE_MISMATCH",
-            expectedPhone: matchedInvite.phone
+            expectedPhone: (matchedInvite as any).phone
           }, { status: 400 });
         }
         
         console.log('[CAPTURE-PHONE] ✅ Phone validated successfully');
       }
       
-      // Create user account with invite data
+      // ✅ PHASE 1: Calculate rootSponsorId and depth
+      const sponsorMemberCode = (matchedInvite as any).sponsorMemberCode || (matchedInvite as any).sponsorId || '0000000000';
+      let rootSponsorId = sponsorMemberCode;
+      let depth = 1;
+      
+      if (sponsorMemberCode !== '0000000000') {
+        // Fetch sponsor to get their root
+        const sponsorDoc = await db.collection('users').doc(sponsorMemberCode).get();
+        if (sponsorDoc.exists) {
+          const sponsorData = sponsorDoc.data();
+          // If sponsor has a root, inherit it (otherwise sponsor IS the root)
+          rootSponsorId = sponsorData?.rootSponsorId || sponsorMemberCode;
+          depth = (sponsorData?.depth || 0) + 1;
+          
+          console.log('[CAPTURE-PHONE] Root/depth calculated:', { 
+            sponsor: sponsorMemberCode, 
+            rootSponsorId, 
+            depth 
+          });
+        }
+      } else {
+        // Admin invite → this user IS the root
+        rootSponsorId = phoneDigits;
+        depth = 0;
+      }
+      
+      // Create user account with invite data + root/depth
       const userData = {
         name: properName,
         nameLower: nameLower,
         phone: phoneDigits,
         memberCode: phoneDigits,
         status: 'pending',
-        sponsorId: matchedInvite.sponsorId || '0000000000',
-        sponsorName: matchedInvite.sponsorName || 'Admin',
-        sponsorMemberCode: matchedInvite.sponsorMemberCode || matchedInvite.sponsorId || '0000000000',
+        sponsorId: (matchedInvite as any).sponsorId || '0000000000',
+        sponsorName: (matchedInvite as any).sponsorName || 'Admin',
+        sponsorMemberCode: sponsorMemberCode,
+        rootSponsorId,  // ✅ NEW: immutable root sponsor
+        depth,          // ✅ NEW: depth from root
         inviteId: matchedInvite.id,
         createdAt: new Date().toISOString(),
-        source: matchedInvite.sponsorId === '0000000000' ? 'admin_invite' : 'member_invite'
+        source: (matchedInvite as any).sponsorId === '0000000000' ? 'admin_invite' : 'member_invite'
       };
       
       // Use phone as document ID (memberCode)
       await db.collection('users').doc(phoneDigits).set(userData);
       
-      // Update invite status ONLY in invites collection
+      // Update invite status ONLY in invites collection + set inviteeId
       await db.collection('invites').doc(matchedInvite.id).update({
         status: 'matched',
+        inviteeId: phoneDigits,  // ✅ NEW: set inviteeId on acceptance
         matchedPhone: phoneDigits,
-        matchedAt: new Date().toISOString()
+        matchedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
       
       console.log('[CAPTURE-PHONE] User created from invite:', phoneDigits);
@@ -110,8 +140,8 @@ export async function POST(req: NextRequest) {
         message: "Account created successfully",
         hasInvite: true,
         user: {
-          memberCode: phoneDigits,
-          ...userData
+          ...userData,
+          memberCode: phoneDigits
         }
       });
     }

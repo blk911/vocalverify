@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       .limit(100)
       .get();
     
-    const archive = [];
+    const archive: any[] = [];
     archiveSnapshot.docs.forEach(doc => {
       archive.push({
         id: doc.id,

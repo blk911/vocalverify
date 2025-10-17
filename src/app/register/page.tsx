@@ -5,7 +5,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -68,8 +68,8 @@ export default function RegisterPage() {
       const data = await response.json();
       
       if (response.ok) {
-        // Redirect to member dashboard
-        window.location.href = `/member-dashboard?memberCode=${phoneDigits}`;
+        // Redirect to complete registration for selfie capture
+        window.location.href = `/complete-registration?memberCode=${phoneDigits}&name=${encodeURIComponent(name.trim())}&autoPhone=true`;
       } else {
         setError(data.error || 'Failed to create user');
       }

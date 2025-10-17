@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
-export const GET = asyncHandler(async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
   logger.info('API Request: GET /api/user/check-with-invite', 'API');
   
   const { searchParams } = new URL(req.url);
@@ -91,4 +91,4 @@ export const GET = asyncHandler(async (req: NextRequest) => {
     logger.error('Database error in check-with-invite', error, 'UserCheck', { name });
     throw error;
   }
-});
+}

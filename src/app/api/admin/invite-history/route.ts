@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       .limit(100)
       .get();
     
-    const invites = [];
+    const invites: any[] = [];
     invitesSnapshot.docs.forEach(doc => {
       invites.push({
         id: doc.id,

@@ -3,6 +3,47 @@ import { getDb } from "@/lib/firebaseAdmin";
 
 export const runtime = "nodejs";
 
+/**
+ * Clear vaults collection including all subcollections (messages)
+ */
+async function clearVaultsCollection(db: any): Promise<void> {
+  console.log('[CLEAR-ALL] Clearing vaults collection with subcollections...');
+  
+  const vaultsSnapshot = await db.collection('vaults').get();
+  
+  if (vaultsSnapshot.empty) {
+    console.log('[CLEAR-ALL] Vaults collection is already empty');
+    return;
+  }
+  
+  // Delete each vault and its messages subcollection
+  const deletePromises = vaultsSnapshot.docs.map(async (vaultDoc: any) => {
+    const vaultId = vaultDoc.id;
+    
+    // Delete all messages in the vault's messages subcollection
+    const messagesSnapshot = await db.collection('vaults')
+      .doc(vaultId)
+      .collection('messages')
+      .get();
+    
+    if (!messagesSnapshot.empty) {
+      const messageBatch = db.batch();
+      messagesSnapshot.docs.forEach((messageDoc: any) => {
+        messageBatch.delete(messageDoc.ref);
+      });
+      await messageBatch.commit();
+      console.log(`[CLEAR-ALL] Deleted ${messagesSnapshot.size} messages from vault ${vaultId}`);
+    }
+    
+    // Delete the vault document itself
+    await vaultDoc.ref.delete();
+    console.log(`[CLEAR-ALL] Deleted vault ${vaultId}`);
+  });
+  
+  await Promise.all(deletePromises);
+  console.log(`[CLEAR-ALL] Cleared ${vaultsSnapshot.size} vaults and their messages`);
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     console.log('[CLEAR-ALL] Starting comprehensive clear operation');
@@ -13,7 +54,14 @@ export async function DELETE(req: NextRequest) {
       'invites',
       'notFoundRegistry',
       'tempUsers',
-      'nfArchive'
+      'nfArchive',
+      'trustBonds',
+      'trustUnits',
+      'trustConnections',
+      'vaults',           // ✅ ADDED: Vault conversations and messages
+      'voice_uploads',    // ✅ ADDED: Voice recording files
+      'voice_biometrics', // ✅ ADDED: Voice print data
+      'tempMembers'       // ✅ ADDED: Temporary member data
     ];
     
     let totalDeleted = 0;
@@ -22,6 +70,14 @@ export async function DELETE(req: NextRequest) {
     // Clear each collection
     for (const collectionName of collectionsToClean) {
       try {
+        // Special handling for vaults (has subcollections)
+        if (collectionName === 'vaults') {
+          await clearVaultsCollection(db);
+          deletionResults[collectionName] = 1; // Mark as processed
+          totalDeleted += 1;
+          continue;
+        }
+        
         const snapshot = await db.collection(collectionName).get();
         
         if (snapshot.empty) {

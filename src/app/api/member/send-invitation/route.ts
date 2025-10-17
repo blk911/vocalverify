@@ -43,13 +43,13 @@ export async function POST(req: NextRequest) {
       inviteCode: Math.random().toString(36).substr(2, 10).toUpperCase(),
       inviterUid: memberCode,
       inviterMemberCode: memberCode, // Member code is the inviter's memberCode
-      inviterName: inviterData.name || inviterData.fullName,
+      inviterName: inviterData?.name || inviterData?.fullName || 'Unknown',
       inviteeEmail: inviteeEmail.trim(),
       inviteeName: properName,
       nameLower: nameLower,
       status: "sent",
       sponsorId: memberCode, // Member becomes sponsor
-      sponsorName: inviterData.name || inviterData.fullName,
+      sponsorName: inviterData?.name || inviterData?.fullName || 'Unknown',
       sponsorMemberCode: memberCode,
       createdAt: new Date().toISOString()
     };

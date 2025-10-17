@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
     
     return NextResponse.json({
       ok: true,
-      profilePicture: userData.profilePicture || null,
-      hasProfilePicture: Boolean(userData.profilePicture)
+      profilePicture: userData?.profilePicture || null,
+      hasProfilePicture: Boolean(userData?.profilePicture)
     });
 
   } catch (error: any) {

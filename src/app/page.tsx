@@ -25,7 +25,7 @@ export default function HomePage() {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: "url(/amihuman-bkgrnd.png)" }}
-        aria-hidden
+        aria-hidden="true"
       />
 
       {/* Two-step messages at 40% from top, horizontally centered */}
@@ -51,7 +51,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* ENTER button â€” centered near bottom; fades in after sequence */}
+      {/* ENTER button - centered near bottom; fades in after sequence */}
       <div className="absolute bottom-24 left-1/2 z-10 -translate-x-1/2">
         <button
           onClick={() => (window.location.href = "/connect")}
@@ -63,7 +63,8 @@ export default function HomePage() {
             "transition-opacity duration-700",
             showEnter ? "opacity-100" : "opacity-0",
           ].join(" ")}
-          aria-hidden={!showEnter}
+          disabled={!showEnter}
+          aria-label="Enter to connect"
         >
           ENTER
         </button>

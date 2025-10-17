@@ -39,16 +39,16 @@ function MemberDashboardContent() {
   
   const memberCode = resolveMemberCode({ searchParams, memberData: null }); // Will be updated when memberData loads
   
-  const [memberData, setMemberData] = useState(null);
+  const [memberData, setMemberData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
-  const [showVoiceModal, setShowVoiceModal] = useState(null);
+  const [showVoiceModal, setShowVoiceModal] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [recordedBlob, setRecordedBlob] = useState(null);
-  const [countdownInterval, setCountdownInterval] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [countdownInterval, setCountdownInterval] = useState<NodeJS.Timeout | null>(null);
   const [showVoicePrompts, setShowVoicePrompts] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -80,22 +80,42 @@ function MemberDashboardContent() {
   
   // Trust Unit states
   const [showTrustUnitModal, setShowTrustUnitModal] = useState(false);
-  const [currentTrustUnit, setCurrentTrustUnit] = useState(null);
-  const [trustUnits, setTrustUnits] = useState([]);
+  const [currentTrustUnit, setCurrentTrustUnit] = useState<any>(null);
+  const [trustUnits, setTrustUnits] = useState<any[]>([]);
+  const [trustBonds, setTrustBonds] = useState<any[]>([]);
   const [isCheckingTrustUnits, setIsCheckingTrustUnits] = useState(true);
   const [pageReady, setPageReady] = useState(false);
-  const [invitedLovedOnes, setInvitedLovedOnes] = useState([]);
+  
+  // Vault states
+  const [selectedVault, setSelectedVault] = useState<any>(null);
+  const [vaultMessages, setVaultMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [showVaultCreationModal, setShowVaultCreationModal] = useState(false);
+  const [messagePollingInterval, setMessagePollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [reactingMessage, setReactingMessage] = useState<any>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  
+  // TU Member display states
+  const [tuMembers, setTuMembers] = useState<any[]>([]);
+  const [showAllMembers, setShowAllMembers] = useState(false);
+  const [memberActiveStates, setMemberActiveStates] = useState<any>({});
+  const [editContent, setEditContent] = useState('');
+  const [invitedLovedOnes, setInvitedLovedOnes] = useState<any[]>([]);
   const [showInvitePreview, setShowInvitePreview] = useState(false);
   const [currentPhoto, setCurrentPhoto] = useState('');
   const [isCapturing, setIsCapturing] = useState(false);
-  const [cameraStream, setCameraStream] = useState(null);
-  const videoRef = useRef(null);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   // Voice print states
   const [voicePrints, setVoicePrints] = useState({
-    person1: { name: "", status: "pending", voiceFile: null },
-    person2: { name: "", status: "pending", voiceFile: null },
-    person3: { name: "", status: "pending", voiceFile: null }
+    person1: { name: "", status: "pending", voiceFile: null as File | null },
+    person2: { name: "", status: "pending", voiceFile: null as File | null },
+    person3: { name: "", status: "pending", voiceFile: null as File | null }
   });
   const [completionStatus, setCompletionStatus] = useState("incomplete");
   const [progress, setProgress] = useState("0/3");
@@ -239,10 +259,10 @@ function MemberDashboardContent() {
          // Sequential completion state
          const [currentStep, setCurrentStep] = useState(1); // 1: Original, 2: Profile Confirm, 3: Phone
          const [phoneConfirmed, setPhoneConfirmed] = useState(false);
-         const [phoneVoicePrint, setPhoneVoicePrint] = useState({
-           phone: "",
-           status: "pending",
-           voiceFile: null,
+        const [phoneVoicePrint, setPhoneVoicePrint] = useState({
+          phone: "",
+          status: "pending",
+          voiceFile: null as File | null,
            confirmed: false
          });
 
@@ -259,6 +279,139 @@ function MemberDashboardContent() {
       logApiSuccess('Page title updated', { title: document.title });
     }
   }, [memberData]);
+
+  // CRITICAL: Clear invalid vault selections on component mount
+  useEffect(() => {
+    // Clear any stale vault selections that might cause 404 errors
+    setSelectedVault(null);
+    setVaultMessages([]);
+    stopMessagePolling();
+    console.log('🧹 Cleared stale vault selections on component mount');
+  }, []);
+
+  // Load TU members when a TU vault is selected
+  const loadTuMembers = async (tuId: string) => {
+    try {
+      console.log('🔄 Loading TU member buttons for TU ID:', tuId);
+      
+      // Use the new endpoint to get member buttons
+      const response = await fetch(`/api/tu-members/buttons?tuId=${tuId}`);
+      const data = await response.json();
+      
+      if (data.ok && data.members) {
+        console.log('✅ Loaded TU member buttons:', data.members.length);
+        console.log('✅ Member data:', data.members);
+        setTuMembers(data.members);
+        console.log('✅ Member buttons set in state');
+      } else {
+        console.error('❌ Failed to load TU member buttons:', data.error);
+        setTuMembers([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading TU member buttons:', error);
+      setTuMembers([]);
+    }
+  };
+
+  // Format message date properly
+  const formatMessageDate = (dateInput: any) => {
+    try {
+      if (!dateInput) return 'Just now';
+      
+      let date: Date;
+      
+      // Handle Firestore timestamp format
+      if (dateInput.seconds) {
+        date = new Date(dateInput.seconds * 1000);
+      }
+      // Handle regular date string or number
+      else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
+        date = new Date(dateInput);
+      }
+      // Handle Date object
+      else if (dateInput instanceof Date) {
+        date = dateInput;
+      }
+      else {
+        return 'Just now';
+      }
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Just now';
+      }
+      
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      
+      return date.toLocaleDateString();
+    } catch (error) {
+      console.error('Error formatting message date:', error);
+      return 'Just now';
+    }
+  };
+
+  // Render TU member names with truncation and active states
+  const renderTuMemberNames = () => {
+    console.log('🎯 renderTuMemberNames called, tuMembers:', tuMembers);
+    console.log('🎯 tuMembers length:', tuMembers?.length);
+    
+    if (!tuMembers || tuMembers.length === 0) {
+      console.log('🎯 No members to display, returning null');
+      return null;
+    }
+
+    const displayMembers = showAllMembers ? tuMembers : tuMembers.slice(0, 3);
+    const hasMore = tuMembers.length > 3;
+
+    console.log('🎯 Rendering member buttons:', displayMembers.length);
+
+    return (
+      <div className="flex items-center gap-1">
+        {displayMembers.map((member, index) => {
+          return (
+            <span key={member.memberCode} className="flex items-center gap-1">
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                member.isActive 
+                  ? 'bg-green-100 text-green-800 border border-green-200' 
+                  : 'bg-gray-100 text-gray-600 border border-gray-200'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  member.isActive ? 'bg-green-500' : 'bg-gray-400'
+                }`}></span>
+                {member.name}
+              </span>
+              {index < displayMembers.length - 1 && <span className="text-slate-400 text-xs">,</span>}
+            </span>
+          );
+        })}
+        {hasMore && !showAllMembers && (
+          <button
+            onClick={() => setShowAllMembers(true)}
+            className="text-indigo-600 hover:text-indigo-800 text-xs font-medium ml-1"
+          >
+            +{tuMembers.length - 3}
+          </button>
+        )}
+        {hasMore && showAllMembers && (
+          <button
+            onClick={() => setShowAllMembers(false)}
+            className="text-indigo-600 hover:text-indigo-800 text-xs font-medium ml-1"
+          >
+            less
+          </button>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     // Load member data from database
@@ -277,11 +430,26 @@ function MemberDashboardContent() {
     loadInvitedLovedOnes();
   }, [memberCode]);
 
-  // Load invited loved ones when Groups section is accessed
+  // Cleanup polling on component unmount
+  useEffect(() => {
+    // Clear any invalid vault selection on mount
+    setSelectedVault(null);
+    setVaultMessages([]);
+    
+    return () => {
+      stopMessagePolling();
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, []);
+
+  // Load invited loved ones when Connections section is accessed
   useEffect(() => {
     if (activeSection === 'groups' && memberCode) {
       loadInvitedLovedOnes();
       loadTrustUnits();
+      loadTrustBonds();
     }
   }, [activeSection, memberCode]);
 
@@ -290,6 +458,7 @@ function MemberDashboardContent() {
     if (activeSection === 'overview' && memberCode) {
       loadInvitedLovedOnes();
       loadTrustUnits();
+      loadTrustBonds();
     }
   }, [activeSection, memberCode]);
 
@@ -318,7 +487,7 @@ function MemberDashboardContent() {
       console.log('Microphone available on page load');
     } catch (error) {
       setMicAvailable(false);
-      console.log('Microphone not available on page load:', error.message);
+      console.log('Microphone not available on page load:', (error as Error).message);
     }
   };
 
@@ -340,12 +509,12 @@ function MemberDashboardContent() {
       console.log('Camera available on page load');
     } catch (error) {
       setCameraAvailable(false);
-      console.log('Camera not available on page load:', error.message);
+      console.log('Camera not available on page load:', (error as Error).message);
     }
   };
 
   // Invite form handlers
-  const handleInviteFormChange = (field, value) => {
+  const handleInviteFormChange = (field: string, value: string) => {
     setInviteForm(prev => ({
       ...prev,
       [field]: value
@@ -402,7 +571,51 @@ function MemberDashboardContent() {
       
       if (response.ok) {
         console.log('✅ Invite sent successfully!');
+        
+        // Check for Trust Unit prospect
+        if (responseData.trustUnitProspect) {
+          console.log('🎯 TRUST UNIT PROSPECT DETECTED!');
+          console.log('TU Prospect data:', responseData.trustUnitProspect);
+          
+          // Show Trust Unit modal immediately with real member data
+          // Fetch full TU data to get real member names
+          try {
+            const tuResponse = await fetch(`/api/trust-units/list?memberCode=${memberCode}`);
+            const tuData = await tuResponse.json();
+            
+            if (tuData.ok && tuData.trustUnits) {
+              const prospectTU = tuData.trustUnits.find((tu: any) => tu.id === responseData.trustUnitProspect.unitId);
+              if (prospectTU) {
+                console.log('✅ TU Modal with real data:', prospectTU);
+                console.log('✅ Members array:', prospectTU.members);
+                setCurrentTrustUnit(prospectTU);
+                setShowTrustUnitModal(true);
+              } else {
+                console.error('❌ TU prospect not found in list');
+                console.log('Available TUs:', tuData.trustUnits.map((tu: any) => ({ id: tu.id, members: tu.members })));
+              }
+            }
+          } catch (tuError) {
+            console.error('❌ Error fetching TU data:', tuError);
+            // Fallback to basic data
+            setCurrentTrustUnit({
+              id: responseData.trustUnitProspect.unitId,
+              members: responseData.trustUnitProspect.members.map((memberCode: string) => ({
+                memberCode,
+                name: memberCode === memberCode ? 'You' : 'Member',
+                status: 'pending_connection'
+              })),
+              status: responseData.trustUnitProspect.status,
+              type: 'same_sponsor'
+            });
+            setShowTrustUnitModal(true);
+          }
+          
+          setSuccessMessage('Invitation sent! Trust Unit opportunity detected.');
+        } else {
         setSuccessMessage('Invitation sent successfully!');
+        }
+        
         setShowSuccessModal(true);
         
         // Reset form and hide preview
@@ -418,12 +631,19 @@ function MemberDashboardContent() {
         await loadInvitedLovedOnes();
       } else {
         console.error('❌ Invite failed:', responseData);
+        
+        // ✅ PHASE 4: Handle duplicate TU member error
+        if (responseData.code === 'ALREADY_IN_TU' || responseData.code === 'DUPLICATE_TU_MEMBER') {
+          setErrorMessage(`${responseData.error}. You're already connected through your Trust Unit.`);
+        } else {
         setErrorMessage('Failed to send invitation: ' + (responseData.error || 'Unknown error'));
+        }
+        
         setShowErrorModal(true);
       }
     } catch (error) {
       console.error('❌ Error sending invite:', error);
-      setErrorMessage('Failed to send invitation: ' + error.message);
+      setErrorMessage('Failed to send invitation: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -471,26 +691,33 @@ function MemberDashboardContent() {
           console.log('ℹ️ No trust units found - user may need sponsor relationships');
         }
         
-        // Check for pending trust units that need THIS user's attention
-        const pendingUnits = data.trustUnits.filter((unit: any) => {
-          if (unit.status !== 'pending_connections') return false;
+        // Check for trust unit prospects or pending units that need THIS user's attention
+        const relevantUnits = data.trustUnits.filter((unit: any) => {
+          // Include both 'prospect' and 'pending_connections' status
+          if (unit.status !== 'prospect' && unit.status !== 'pending_connections') return false;
           
-          // Check if current user is still pending in this unit
+          // Check if current user is in this unit
           const currentUserMember = unit.members.find((member: any) => 
             member.memberCode === memberCode
           );
           
+          // For prospects: show modal to all members
+          // For pending: show modal only to pending members
+          if (unit.status === 'prospect') {
+            return currentUserMember; // Any member in prospect sees modal
+          } else {
           return currentUserMember && currentUserMember.status === 'pending_connection';
+          }
         });
         
-        if (pendingUnits.length > 0) {
-          console.log('🔔 INTERSTITIAL MODAL: Found pending trust units:', pendingUnits);
-          setCurrentTrustUnit(pendingUnits[0]);
+        if (relevantUnits.length > 0) {
+          console.log('🔔 INTERSTITIAL MODAL: Found relevant trust units:', relevantUnits);
+          setCurrentTrustUnit(relevantUnits[0]);
           setShowTrustUnitModal(true);
           // DON'T set pageReady yet - modal must be resolved first
           console.log('🔔 Modal should be showing now');
         } else {
-          console.log('✅ No pending trust units, page ready');
+          console.log('✅ No relevant trust units, page ready');
           setPageReady(true);
         }
       } else {
@@ -502,6 +729,44 @@ function MemberDashboardContent() {
       setPageReady(true); // Allow page to load even if trust units fail
     } finally {
       setIsCheckingTrustUnits(false);
+    }
+  };
+
+  const loadTrustBonds = async () => {
+    try {
+      console.log('\n🔥🔥🔥 [DASHBOARD] LOADING TRUST BONDS 🔥🔥🔥');
+      console.log('[DASHBOARD] Member Code:', memberCode);
+      
+      if (!memberCode) {
+        console.log('[DASHBOARD] ❌ No memberCode, skipping trust bonds');
+        return;
+      }
+      
+      logApiSuccess('/api/trust-bonds/list REQUEST', { memberCode });
+      const data = await apiCalls.getTrustBonds(memberCode);
+      console.log('[DASHBOARD] Trust bonds response:', data);
+      
+      if (data.ok) {
+        console.log('✅ [DASHBOARD] Loaded trust bonds:', data.trustBonds?.length || 0);
+        setTrustBonds(data.trustBonds || []);
+        logApiSuccess('/api/trust-bonds/list SUCCESS', { count: data.trustBonds?.length || 0 });
+        
+        // Log each bond
+        if (data.trustBonds && data.trustBonds.length > 0) {
+          console.log('[DASHBOARD] 💎 TRUST BONDS FOUND:');
+          data.trustBonds.forEach((bond: any, idx: number) => {
+            console.log(`  ${idx + 1}. ${bond.fromMemberName} → ${bond.toMemberName} (${bond.status})`);
+          });
+        } else {
+          console.log('[DASHBOARD] ℹ️ No trust bonds found yet');
+        }
+      } else {
+        console.error('[DASHBOARD] ❌ Failed to load trust bonds:', data.error);
+        logApiError('/api/trust-bonds/list FAILED', { error: data.error });
+      }
+    } catch (error) {
+      console.error('[DASHBOARD] ❌ Error loading trust bonds:', error);
+      logApiError('/api/trust-bonds/list ERROR', error);
     }
   };
 
@@ -540,7 +805,7 @@ function MemberDashboardContent() {
       }
     } catch (error) {
       console.error('❌ Error connecting to trust unit:', error);
-      setErrorMessage('Failed to connect to trust unit: ' + error.message);
+      setErrorMessage('Failed to connect to trust unit: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -580,12 +845,12 @@ function MemberDashboardContent() {
       }
     } catch (error) {
       console.error('❌ Error updating status:', error);
-      setErrorMessage('Failed to update status: ' + error.message);
+      setErrorMessage('Failed to update status: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
 
-  const handleStatusChange = async (inviteId, newStatus) => {
+  const handleStatusChange = async (inviteId: string, newStatus: string) => {
     try {
       console.log('=== UPDATING INVITE STATUS ===');
       console.log('Invite ID:', inviteId);
@@ -652,7 +917,498 @@ function MemberDashboardContent() {
     window.location.href = '/connect';
   };
 
-  const handleVoicePrintRecord = async (personNumber, name) => {
+  // Vault handler functions
+  const handleVaultSelection = async (type: string, item: any) => {
+    console.log('🔄 VAULT SELECTION:', { type, itemId: item.id, itemName: item.tuName || item.toMemberName || item.fromMemberName });
+    
+    // Stop previous polling
+    stopMessagePolling();
+    
+    // Clear ALL vault-related state when switching vaults
+    setTuMembers([]);
+    setShowAllMembers(false);
+    setMemberActiveStates({});
+    setVaultMessages([]); // Clear messages from previous vault
+    setNewMessage(''); // Clear any pending message input
+    
+    // Don't set vault ID until we have a valid one
+    setSelectedVault({
+      type,
+      ...item,
+      id: undefined, // Clear any existing vault ID
+      vaultId: undefined
+    });
+    
+    let vaultId = item.vaultId; // Only use existing vaultId, not item.id
+    
+    // For trust bonds, we need to create or find the vault
+    if (type === 'bond' && !vaultId) {
+      try {
+        // Determine the correct participant ID based on bond direction
+        let participantId;
+        if (item.direction === 'sent') {
+          participantId = item.toMemberCode;
+        } else {
+          participantId = item.fromMemberCode;
+        }
+        
+        console.log('🔗 Creating vault for trust bond:', {
+          creatorId: memberCode,
+          participantId: participantId,
+          direction: item.direction,
+          bondId: item.id,
+          bondName: item.toMemberName || item.fromMemberName
+        });
+        
+        const response = await fetch('/api/vaults/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            creatorId: memberCode,
+            participantId: participantId,
+            vaultType: 'chat'
+          })
+        });
+        
+        const data = await response.json();
+        console.log('Vault creation response:', data);
+        
+        if (data.ok && data.vaultId) {
+          vaultId = data.vaultId;
+          console.log('✅ Trust Bond vault created successfully:', vaultId);
+          setSelectedVault((prev: any) => ({ ...prev, id: vaultId, vaultId }));
+        } else {
+          console.error('Error creating vault:', data.error);
+          setVaultMessages([]);
+          // Clear the selected vault if creation failed
+          setSelectedVault(null);
+          return;
+        }
+      } catch (error) {
+        console.error('Error creating vault:', error);
+        setVaultMessages([]);
+        return;
+      }
+    }
+    
+    // Load messages for this vault (only if we have a valid vault ID)
+    if (vaultId && vaultId !== 'djM9F3H4dSFolA0yeWK1') {
+      await loadVaultMessages(vaultId);
+      // Start real-time polling
+      startMessagePolling(vaultId);
+    } else if (type === 'unit') {
+      // Load TU members immediately when TU is selected
+      console.log('🔄 TU SELECTED - Loading TU members for Trust Unit:', item.id);
+      console.log('🔄 TU item data:', item);
+      
+      // Load REAL TU members (no test data)
+      await loadTuMembers(item.id);
+      
+      // For Trust Units, we need to create a TU vault
+      try {
+        console.log('👥 Creating TU vault for Trust Unit:', {
+          tuId: item.id,
+          tuName: item.tuName,
+          creatorId: memberCode
+        });
+        
+        const response = await fetch('/api/vaults/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            creatorId: memberCode,
+            participantId: memberCode, // TU vaults include the creator
+            vaultType: 'chat',
+            tuId: item.id
+          })
+        });
+        
+        const data = await response.json();
+        console.log('TU vault creation response:', data);
+        
+        if (data.ok && data.vaultId) {
+          vaultId = data.vaultId;
+          console.log('✅ TU vault created successfully:', vaultId);
+          setSelectedVault((prev: any) => ({ ...prev, id: vaultId, vaultId }));
+          await loadVaultMessages(vaultId);
+          startMessagePolling(vaultId);
+          
+          // AUTO-FOCUS INPUT FIELD AFTER SUCCESSFUL VAULT CREATION
+          setTimeout(() => {
+            const inputField = document.getElementById('message-input');
+            if (inputField) {
+              inputField.focus();
+              inputField.click();
+            }
+          }, 300);
+        } else {
+          console.error('Error creating TU vault:', data.error);
+          setVaultMessages([]);
+          // Clear the selected vault if creation failed
+          setSelectedVault(null);
+        }
+      } catch (error) {
+        console.error('Error creating TU vault:', error);
+        setVaultMessages([]);
+      }
+    } else {
+      console.error('No vault ID available for selection');
+      setVaultMessages([]);
+    }
+  };
+
+  const loadVaultMessages = async (vaultId: string) => {
+    if (!vaultId) {
+      console.log('No vault ID provided to loadVaultMessages');
+      setVaultMessages([]);
+      return;
+    }
+    
+    // CRITICAL: Prevent loading messages for known invalid vault IDs
+    if (vaultId === 'djM9F3H4dSFolA0yeWK1') {
+      console.log('🚫 Blocked loading messages for invalid vault ID:', vaultId);
+      setVaultMessages([]);
+      return;
+    }
+    
+    try {
+      console.log(`Loading messages for vault: ${vaultId}`);
+      const response = await fetch(`/api/vaults/${vaultId}/messages?memberCode=${memberCode}`);
+      const data = await response.json();
+      
+      if (data.ok) {
+        console.log(`Loaded ${data.messages?.length || 0} messages for vault ${vaultId}`);
+        setVaultMessages(data.messages || []);
+      } else {
+        console.error('Error loading messages:', data.error);
+        setVaultMessages([]);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setVaultMessages([]);
+    }
+  };
+
+  // Start real-time message polling
+  const startMessagePolling = (vaultId: string) => {
+    // CRITICAL: Prevent polling for invalid vault IDs
+    if (vaultId === 'djM9F3H4dSFolA0yeWK1') {
+      console.log('🚫 Blocked polling for invalid vault ID:', vaultId);
+      return;
+    }
+    
+    if (messagePollingInterval) {
+      clearInterval(messagePollingInterval);
+    }
+    
+    const interval = setInterval(async () => {
+      await loadVaultMessages(vaultId);
+    }, 2000); // Poll every 2 seconds
+    
+    setMessagePollingInterval(interval);
+  };
+
+  // Stop message polling
+  const stopMessagePolling = () => {
+    if (messagePollingInterval) {
+      clearInterval(messagePollingInterval);
+      setMessagePollingInterval(null);
+    }
+  };
+
+  // Handle typing indicator
+  const handleTyping = () => {
+    setIsTyping(true);
+    
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    const timeout = setTimeout(() => {
+      setIsTyping(false);
+    }, 1000);
+    
+    setTypingTimeout(timeout);
+  };
+
+  // Handle message reaction
+  const handleMessageReaction = async (messageId: string, reaction: string) => {
+    if (!selectedVault) return;
+    
+    const vaultId = selectedVault.id || selectedVault.vaultId;
+    if (!vaultId) return;
+    
+    try {
+      const response = await fetch(`/api/vaults/${vaultId}/messages/${messageId}/react`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: memberCode,
+          reaction
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Update local message state with new reactions
+        setVaultMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, reactions: data.reactions }
+            : msg
+        ));
+      } else {
+        console.error('Error updating reaction:', data.error);
+      }
+    } catch (error) {
+      console.error('Error updating reaction:', error);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (file: File) => {
+    if (!selectedVault || !file) {
+      console.error('No vault selected or no file provided');
+      return;
+    }
+    
+    const vaultId = selectedVault.id || selectedVault.vaultId;
+    if (!vaultId) {
+      console.error('No valid vault ID for file upload');
+      return;
+    }
+    
+    console.log('📁 Uploading file:', file.name, 'to vault:', vaultId);
+    setUploadingFile(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('senderId', memberCode);
+      formData.append('messageType', file.type.startsWith('image/') ? 'image' : 'file');
+      
+      console.log('📁 Sending file upload request...');
+      const response = await fetch(`/api/vaults/${vaultId}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      console.log('📁 File upload response:', data);
+      
+      if (data.ok) {
+        // Add message to local state
+        setVaultMessages(prev => [...prev, data.message]);
+        console.log('✅ File uploaded successfully:', data.message);
+      } else {
+        console.error('❌ Error uploading file:', data.error);
+        alert(`File upload failed: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Error uploading file:', error);
+      alert(`File upload failed: ${(error as Error).message}`);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleFileUpload(files[0]);
+    }
+  };
+
+  // Handle file input change
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload(file);
+    }
+  };
+
+  // Handle message editing
+  const handleEditMessage = (message: any) => {
+    setEditingMessage(message);
+    setEditContent(message.content);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMessage || !selectedVault) return;
+    
+    const vaultId = selectedVault.id || selectedVault.vaultId;
+    if (!vaultId) return;
+    
+    try {
+      const response = await fetch(`/api/vaults/${vaultId}/messages/${editingMessage.id}/edit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: memberCode,
+          content: editContent
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Update local message state
+        setVaultMessages(prev => prev.map(msg => 
+          msg.id === editingMessage.id 
+            ? { ...msg, content: editContent, editedAt: new Date() }
+            : msg
+        ));
+        setEditingMessage(null);
+        setEditContent('');
+      } else {
+        console.error('Error editing message:', data.error);
+      }
+    } catch (error) {
+      console.error('Error editing message:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setEditContent('');
+  };
+
+  // Handle message deletion
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!selectedVault) return;
+    
+    const vaultId = selectedVault.id || selectedVault.vaultId;
+    if (!vaultId) return;
+    
+    if (!confirm('Are you sure you want to delete this message?')) return;
+    
+    try {
+      const response = await fetch(`/api/vaults/${vaultId}/messages/${messageId}/delete?userId=${memberCode}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Update local message state
+        setVaultMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: '[Message deleted]', deletedAt: new Date() }
+            : msg
+        ));
+      } else {
+        console.error('Error deleting message:', data.error);
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedVault) return;
+    
+    const vaultId = selectedVault.id || selectedVault.vaultId;
+    if (!vaultId) {
+      console.error('No valid vault ID for sending message');
+      return;
+    }
+    
+    // Block sending to the known invalid vault ID
+    if (vaultId === 'djM9F3H4dSFolA0yeWK1') {
+      console.error('Cannot send message to invalid vault ID:', vaultId);
+      return;
+    }
+    
+    console.log(`📤 Sending message to vault: ${vaultId} (${selectedVault.type})`);
+    
+    try {
+      const response = await fetch(`/api/vaults/${vaultId}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          senderId: memberCode,
+          content: newMessage,
+          messageType: 'text'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Add message to local state (only for current vault)
+        setVaultMessages(prev => [...prev, data.message]);
+        setNewMessage('');
+        console.log(`✅ Message sent successfully to vault: ${vaultId}`);
+      } else {
+        console.error('Error sending message:', data.error);
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  const handleCreateVault = async (vaultType: string) => {
+    if (!selectedVault) return;
+    
+    const participantId = selectedVault.type === 'bond' ? 
+      selectedVault.memberCode : 
+      selectedVault.id; // For TU vaults
+    
+    try {
+      const response = await fetch('/api/vaults/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          creatorId: memberCode,
+          participantId,
+          vaultType,
+          tuId: selectedVault.type === 'unit' ? selectedVault.id : null
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.ok) {
+        if (data.existing) {
+          // Vault already exists, load it
+          await loadVaultMessages(data.vaultId);
+        } else {
+          // New vault created
+          setSelectedVault((prev: any) => ({ ...prev, id: data.vaultId }));
+          await loadVaultMessages(data.vaultId);
+        }
+        setShowVaultCreationModal(false);
+      } else {
+        console.error('Error creating vault:', data.error);
+      }
+    } catch (error) {
+      console.error('Error creating vault:', error);
+    }
+  };
+
+  const handleVoicePrintRecord = async (personNumber: string, name: string) => {
     if (!name.trim()) {
       setErrorMessage('Please enter the person\'s name first');
       setShowErrorModal(true);
@@ -664,7 +1420,7 @@ function MemberDashboardContent() {
       const recorder = new MediaRecorder(stream);
       setMediaRecorder(recorder);
       
-      const chunks = [];
+      const chunks: BlobPart[] = [];
       recorder.ondataavailable = (event) => {
         chunks.push(event.data);
       };
@@ -769,20 +1525,20 @@ function MemberDashboardContent() {
     }
   };
 
-  const toggleSection = (step) => {
+  const toggleSection = (step: string) => {
     setExpandedSections(prev => ({
       ...prev,
-      [step]: !prev[step]
+      [step as keyof typeof prev]: !prev[step as keyof typeof prev]
     }));
   };
 
-  const handleAuthVoiceRecord = async (stepType) => {
+  const handleAuthVoiceRecord = async (stepType: string) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       setMediaRecorder(recorder);
       
-      const chunks = [];
+      const chunks: BlobPart[] = [];
       recorder.ondataavailable = (event) => {
         chunks.push(event.data);
       };
@@ -831,10 +1587,10 @@ function MemberDashboardContent() {
     }
   };
 
-  const handleVoicePrintListen = (personNumber) => {
-    const voicePrint = voicePrints[personNumber];
+  const handleVoicePrintListen = (personNumber: string) => {
+    const voicePrint = voicePrints[personNumber as keyof typeof voicePrints];
     if (voicePrint.voiceFile) {
-      const audio = new Audio(voicePrint.voiceFile);
+      const audio = new Audio(URL.createObjectURL(voicePrint.voiceFile));
       audio.play();
     } else {
       setErrorMessage('No voice recording found for this person');
@@ -861,8 +1617,8 @@ function MemberDashboardContent() {
       setShowSuccessModal(true);
     } catch (error) {
       setCameraAvailable(false);
-      setCameraError(error.message);
-      setErrorMessage('Camera not available: ' + error.message);
+      setCameraError((error as Error).message);
+      setErrorMessage('Camera not available: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -887,8 +1643,8 @@ function MemberDashboardContent() {
       setShowSuccessModal(true);
     } catch (error) {
       setMicAvailable(false);
-      setMicError(error.message);
-      setErrorMessage('Microphone not available: ' + error.message);
+      setMicError((error as Error).message);
+      setErrorMessage('Microphone not available: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -950,8 +1706,8 @@ function MemberDashboardContent() {
       }, 100);
     } catch (error) {
       console.error('Camera error:', error);
-      setCameraError(error.message);
-      setErrorMessage('Failed to start camera: ' + error.message);
+      setCameraError((error as Error).message);
+      setErrorMessage('Failed to start camera: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -973,7 +1729,7 @@ function MemberDashboardContent() {
       canvas.height = videoRef.current.videoHeight;
       
       // Draw video frame to canvas
-      context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      context?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       
       // Convert to base64 image
       const photoData = canvas.toDataURL('image/jpeg', 0.8);
@@ -1008,7 +1764,7 @@ function MemberDashboardContent() {
           console.log('Profile photo saved successfully');
           
           // Update memberData with new profile picture
-          setMemberData(prev => ({
+          setMemberData((prev: any) => ({
             ...prev,
             profilePicture: photoData
           }));
@@ -1022,7 +1778,7 @@ function MemberDashboardContent() {
         }
       } catch (error) {
         console.error('Error saving profile photo:', error);
-        setErrorMessage('Failed to save profile photo: ' + error.message);
+        setErrorMessage('Failed to save profile photo: ' + (error as Error).message);
         setShowErrorModal(true);
       }
       
@@ -1200,7 +1956,7 @@ function MemberDashboardContent() {
       }
     } catch (error) {
       console.error('🎵 Error playing primary voice:', error);
-      setErrorMessage('Failed to play voice recording: ' + error.message);
+        setErrorMessage('Failed to play voice recording: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -1231,7 +1987,7 @@ function MemberDashboardContent() {
       }
     } catch (error) {
       console.error('Error playing profile voice:', error);
-      setErrorMessage('Failed to play voice recording: ' + error.message);
+        setErrorMessage('Failed to play voice recording: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -1257,7 +2013,7 @@ function MemberDashboardContent() {
       }
     } catch (error) {
       console.error('Error playing phone voice:', error);
-      setErrorMessage('Failed to play voice recording: ' + error.message);
+        setErrorMessage('Failed to play voice recording: ' + (error as Error).message);
       setShowErrorModal(true);
     }
   };
@@ -1311,15 +2067,15 @@ function MemberDashboardContent() {
                              {phoneConfirmed ? 'Complete!' : `Step ${currentStep} of 3`}
                            </div>
                          </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
+                         <div className="w-full bg-gray-200 rounded-full h-2">
+                           <div 
                             className={`bg-blue-500 h-2 rounded-full transition-all duration-300 ${
                               currentStep === 1 ? 'w-1/3' : 
                               currentStep === 2 ? 'w-2/3' : 
                               'w-full'
                             }`}
-                          ></div>
-                        </div>
+                           ></div>
+                         </div>
                        </div>
                        
                        
@@ -1630,227 +2386,136 @@ function MemberDashboardContent() {
       case 'overview':
         return (
           <div className="space-y-6">
-            {/* WHAT'S NEW SECTION */}
+            {/* HERO SECTION - THREE DIVS */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* WHAT'S NEW TILE - LEFT */}
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-slate-800 flex items-center">
-                  <span className="mr-2 text-blue-500">🆕</span>
-                  What's New
+                    <span className="mr-2 text-green-500">🆕</span>
+                    What's New!
                 </h2>
-                <div className="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full">
-                  Updates
+                  <div className="text-sm text-green-600 font-medium bg-green-50 px-3 py-1 rounded-full">
+                    Live
                 </div>
               </div>
               
+              <div className="space-y-3">
+                  <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">Trust Bonds Active</p>
+                      <p className="text-xs text-slate-600">2 active connections in your network</p>
+                    </div>
+                  </div>
+                <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                      <p className="text-sm font-medium text-slate-800">Trust Units Connected</p>
+                      <p className="text-xs text-slate-600">1 fully connected trust unit</p>
+                  </div>
+                </div>
+                  <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div>
+                      <p className="text-sm font-medium text-slate-800">Member Status</p>
+                      <p className="text-xs text-slate-600">All members active and verified</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+              {/* VAULT UPDATES - MIDDLE */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                    <span className="mr-2 text-orange-500">🔒</span>
+                    Vault Updates
+                  </h2>
+                  <div className="text-sm text-orange-600 font-medium bg-orange-50 px-3 py-1 rounded-full">
+                    Secure
+              </div>
+            </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3 p-3 bg-orange-50 rounded-lg">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">Data Protection</p>
+                      <p className="text-xs text-slate-600">Enterprise-grade encryption active</p>
+                            </div>
+                          </div>
+                  <div className="flex items-start space-x-3 p-3 bg-amber-50 rounded-lg">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">Backup Status</p>
+                      <p className="text-xs text-slate-600">All data securely backed up</p>
+                          </div>
+                        </div>
+                  <div className="flex items-start space-x-3 p-3 bg-red-50 rounded-lg">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">Access Logs</p>
+                      <p className="text-xs text-slate-600">All vault access monitored</p>
+                      </div>
+                  </div>
+              </div>
+            </div>
+
+              {/* SYSTEM UPDATES - RIGHT */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6">
+                        <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                  <span className="mr-2 text-blue-500">🆕</span>
+                    System Updates
+                </h2>
+                <div className="text-sm text-blue-600 font-medium bg-blue-50 px-3 py-1 rounded-full">
+                    Latest
+                          </div>
+                        </div>
+                        
               <div className="space-y-3">
                 <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
                   <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                   <div>
                     <p className="text-sm font-medium text-slate-800">Trust Unit System Live!</p>
                     <p className="text-xs text-slate-600">Connect with your loved ones through shared sponsors</p>
-                  </div>
-                </div>
+                                  </div>
+                                </div>
                 <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
                   <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                   <div>
                     <p className="text-sm font-medium text-slate-800">Enhanced Security</p>
                     <p className="text-xs text-slate-600">Your data is now protected with enterprise-grade security</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SPONSOR SECTION */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-slate-700 mb-4">Sponsor</h3>
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                {memberData?.sponsorName ? (
-                  <div className="p-6">
-                    <div className="flex items-center space-x-4">
-                      {/* Sponsor Profile Picture or Initial */}
-                      <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                        {memberData.sponsorProfilePicture ? (
-                          <img 
-                            src={memberData.sponsorProfilePicture} 
-                            alt={memberData.sponsorName}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div className={`w-full h-full bg-yellow-200 flex items-center justify-center text-yellow-800 text-lg font-medium ${memberData.sponsorProfilePicture ? 'hidden' : 'flex'}`}>
-                          {(memberData.sponsorName || 'S').charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-slate-800">{capitalizeName(memberData.sponsorName)}</h4>
-                        <p className="text-sm text-slate-600">Your Sponsor</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                        💎 Trust Bond
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="px-6 py-8 text-center text-slate-500">
-                    <div className="text-4xl mb-2">👥</div>
-                    <p>No Sponsor yet</p>
-                    <p className="text-sm">You were invited by someone to join AM I HUMAN.net</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* TRUST BONDS SECTION */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-slate-700 mb-4">Trust Bonds</h3>
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                {invitedLovedOnes.filter((invite: any) => invite.status === 'accepted' || invite.status === 'registered').length > 0 ? (
-                  <div className="divide-y divide-slate-200">
-                    {invitedLovedOnes
-                      .filter((invite: any) => invite.status === 'accepted' || invite.status === 'registered')
-                      .map((invite: any) => (
-                      <div key={invite.inviteId} className="p-6">
-                        <div className="flex items-center space-x-4">
-                          {/* Invitee Profile Picture or Initial */}
-                          <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                            {invite.inviteeProfilePicture ? (
-                              <img 
-                                src={invite.inviteeProfilePicture} 
-                                alt={invite.name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                  (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div className={`w-full h-full bg-slate-200 flex items-center justify-center text-slate-600 text-lg font-medium ${invite.inviteeProfilePicture ? 'hidden' : 'flex'}`}>
-                              {(invite.name || 'I').charAt(0).toUpperCase()}
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-slate-800">{capitalizeName(invite.name)}</h4>
-                            <p className="text-sm text-slate-600">{invite.phone}</p>
-                          </div>
-                          <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                            ✅ Connected
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="px-6 py-8 text-center text-slate-500">
-                    <div className="text-4xl mb-2">💎</div>
-                    <p>No Trust Bonds yet</p>
-                    <p className="text-sm">Trust Bonds form when your invites accept and register</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* TRUST UNITS SECTION */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-slate-700 mb-4">Trust Units</h3>
-              <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                {trustUnits.length > 0 ? (
-                  <div className="divide-y divide-slate-200">
-                    {trustUnits.map((unit: any) => (
-                      <div key={unit.unitId} className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h4 className="font-semibold text-slate-800 flex items-center">
-                            </h4>
-                          </div>
-                          <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            unit.status === 'fully_connected' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {unit.status === 'fully_connected' ? 'Fully Connected' : 'Pending Connections'}
-                          </div>
-                        </div>
-                        
-                        {/* Trust Unit Members - Compact Layout */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {unit.members.map((member: any) => (
-                            <div key={member.memberCode} className="bg-slate-50 rounded-lg p-3">
-                              <div className="flex items-center space-x-3">
-                                {/* Profile Picture Thumbnail */}
-                                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                                  {member.profilePicture ? (
-                                    <img 
-                                      src={member.profilePicture} 
-                                      alt={member.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                                      }}
-                                    />
-                                  ) : null}
-                                  <div className={`w-full h-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium text-sm ${member.profilePicture ? 'hidden' : 'flex'}`}>
-                                    {(member.name || 'M').charAt(0).toUpperCase()}
-                                  </div>
                                 </div>
-                                
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-slate-800 text-sm truncate">
-                                    {member.memberCode === unit.sponsorId ? '👑 ' : ''}{capitalizeName(member.name)} <span className="text-xs text-slate-500 font-normal">({member.memberCode})</span>
-                                  </p>
-                                </div>
-                                
-                                {/* Only show individual status if Trust Unit is NOT fully connected */}
-                                {unit.status !== 'fully_connected' && (
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    member.status === 'connected'
-                                      ? 'bg-green-100 text-green-800'
-                                      : member.status === 'waiting'
-                                      ? 'bg-yellow-100 text-yellow-800'
-                                      : 'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {member.status === 'connected'
-                                      ? '✅'
-                                      : member.status === 'waiting'
-                                      ? '⏳'
-                                      : '⏳'}
-                                  </span>
-                                )}
                               </div>
-                              
-                              {/* Action buttons only for current user and pending connections */}
-                              {member.memberCode === memberCode && member.status === 'pending_connection' && (
-                                <div className="flex space-x-2 mt-2">
-                                  <button
-                                    onClick={() => handleTrustUnitConnect(member.memberCode)}
-                                    className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                                  >
-                                    Connect
-                                  </button>
-                                  <button
-                                    onClick={() => handleTrustUnitWait(member.memberCode)}
-                                    className="px-2 py-1 bg-slate-200 text-slate-800 rounded text-xs hover:bg-slate-300"
-                                  >
-                                    Wait
-                                  </button>
+                  <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-800">UI Improvements</p>
+                      <p className="text-xs text-slate-600">New dashboard layout and navigation updates</p>
                                 </div>
-                              )}
                             </div>
-                          ))}
                         </div>
                       </div>
-                    ))}
                   </div>
-                ) : (
-                  <div className="px-6 py-8 text-center text-slate-500">
-                    <div className="text-4xl mb-2">👑</div>
-                    <p>No Trust Units yet</p>
-                    <p className="text-sm">Trust Units form when you and your loved ones share the same sponsor</p>
+
+            {/* IPSOM DIVISION */}
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">Ipsom</h3>
+              <div className="bg-white rounded border border-slate-300 overflow-hidden shadow-sm p-6">
+                <div className="text-center">
+                  <h4 className="text-lg font-semibold text-slate-800 mb-4">Ipsom Content</h4>
+                  <p className="text-slate-600 mb-4">
+                    This is the Ipsom section placeholder. Content will be added here.
+                  </p>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <p className="text-sm text-slate-500">
+                      Ipsom lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                      Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                    </p>
                   </div>
-                )}
+                      </div>
               </div>
             </div>
           </div>
@@ -2046,7 +2711,7 @@ function MemberDashboardContent() {
                         {/* Check if this invite is part of a Trust Unit */}
                         {(() => {
                           const isTrustUnit = trustUnits.some(unit => 
-                            unit.members.some(member => 
+                             unit.members.some((member: any) =>
                               member.memberCode === invite.phone || member.memberCode === invite.name
                             )
                           );
@@ -2137,212 +2802,889 @@ function MemberDashboardContent() {
           <div className="space-y-6">
             <div className="bg-white rounded-xl border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Groups</h2>
+                <h2 className="text-xl font-semibold text-slate-800">Connections</h2>
                 <div className="text-sm text-orange-600 font-medium bg-orange-50 px-3 py-1 rounded-full">
-                  👥 Groups
+                  👥 Connections
                 </div>
               </div>
               
-              {/* Sponsor Section */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4">Sponsor</h3>
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                  <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-                    <div className="grid grid-cols-4 gap-4 text-sm font-medium text-slate-600">
-                      <div>Sponsor</div>
-                      <div>Name</div>
-                      <div>Member Code</div>
-                      <div>Invite Date</div>
-                    </div>
-                  </div>
-                  <div className="divide-y divide-slate-200">
-                    {/* Show sponsor information if user has a sponsor */}
+              {/* Sponsor Section - PROFESSIONAL TABLE */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">Sponsor</h3>
+                <div className="bg-white rounded border border-slate-300 overflow-hidden shadow-sm">
                     {memberData?.sponsorName ? (
-                      <div className="px-6 py-4 hover:bg-slate-50">
-                        <div className="grid grid-cols-4 gap-4 text-sm">
-                          <div className="text-slate-600 flex items-center space-x-2">
-                            <span>{capitalizeName(memberData.sponsorName)}</span>
-                          </div>
-                          <div className="font-medium text-slate-800 flex items-center space-x-2">
-                            <span>{capitalizeName(memberData.name)}</span>
-                          </div>
-                          <div className="text-slate-600">{memberData.memberCode}</div>
-                          <div className="text-slate-500">{memberData.invitedAt ? new Date(memberData.invitedAt).toLocaleDateString() : 'N/A'}</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="px-6 py-8 text-center text-slate-500">
-                        <div className="text-4xl mb-2">👥</div>
-                        <p>No Sponsor yet</p>
-                        <p className="text-sm">You were invited by someone to join AM I HUMAN.net</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Trust Bonds Section - Show registered invitees */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4">Trust Bonds</h3>
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                  <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
-                    <div className="grid grid-cols-4 gap-4 text-sm font-medium text-slate-600">
-                      <div>Sponsor</div>
-                      <div>Name</div>
-                      <div>Member Code</div>
-                      <div>Invite Date</div>
-                    </div>
-                  </div>
-                  <div className="divide-y divide-slate-200">
-                    {/* Show registered invitees */}
-                    {invitedLovedOnes.filter(invite => invite.status === 'accepted' || invite.status === 'registered').length > 0 ? (
-                      invitedLovedOnes
-                        .filter(invite => invite.status === 'accepted' || invite.status === 'registered')
-                        .map((invite: any) => (
-                          <div key={invite.inviteId} className="px-6 py-4 hover:bg-slate-50">
-                            <div className="grid grid-cols-4 gap-4 text-sm">
-                              <div className="text-slate-600 flex items-center space-x-2">
-                                <span className="text-lg">💎</span>
-                                <span>{capitalizeName(memberData?.name || memberData?.fullName)}</span>
-                              </div>
-                              <div className="font-medium text-slate-800 flex items-center space-x-2">
-                                <span className="text-lg">💎</span>
-                                <span>{capitalizeName(invite.name)}</span>
-                              </div>
-                              <div className="text-slate-600">{invite.phone}</div>
-                              <div className="text-slate-500">{invite.createdAt ? new Date(invite.createdAt).toLocaleDateString() : 'N/A'}</div>
-                            </div>
-                          </div>
-                        ))
-                    ) : (
-                      <div className="px-6 py-8 text-center text-slate-500">
-                        <div className="text-4xl mb-2">💎</div>
-                        <p>No Trust Bonds yet</p>
-                        <p className="text-sm">Trust Bonds form when invited loved ones register and complete their profiles</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Trust Units Section */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-slate-700 mb-4">Trust Units</h3>
-                <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                  {trustUnits.length > 0 ? (
-                    <div className="divide-y divide-slate-200">
-                      {trustUnits.map((unit: any) => (
-                        <div key={unit.unitId} className="p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h4 className="font-semibold text-slate-800 flex items-center">
-                              </h4>
-                            </div>
-                            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              unit.status === 'fully_connected' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {unit.status === 'fully_connected' ? 'Fully Connected' : 'Pending Connections'}
-                            </div>
-                          </div>
-                          
-                          {/* Trust Unit Members - Compact Layout */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            {unit.members.map((member: any) => (
-                                <div key={member.memberCode} className="bg-slate-50 rounded-lg p-3">
-                                <div className="flex items-center space-x-3">
-                                  {/* Profile Picture Thumbnail */}
-                                  <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                                    {member.profilePicture ? (
-                                      <img 
-                                        src={member.profilePicture} 
-                                        alt={member.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          // Fallback to initial if image fails
-                                          e.currentTarget.style.display = 'none';
-                                          (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex';
-                                        }}
-                                      />
-                                    ) : null}
-                                    <div className={`w-full h-full bg-slate-200 flex items-center justify-center text-slate-600 font-medium text-sm ${member.profilePicture ? 'hidden' : 'flex'}`}>
-                                      {(member.name || 'M').charAt(0).toUpperCase()}
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-semibold text-slate-800 text-sm truncate">
-                                      {member.memberCode === unit.sponsorId ? '👑 ' : ''}{capitalizeName(member.name)} <span className="text-xs text-slate-500 font-normal">({member.memberCode})</span>
-                                    </p>
-                                  </div>
-                                  
-                                  {/* Only show individual status if Trust Unit is NOT fully connected */}
-                                  {unit.status !== 'fully_connected' && (
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      member.status === 'connected'
-                                        ? 'bg-green-100 text-green-800'
-                                        : member.status === 'waiting'
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-blue-100 text-blue-800'
-                                    }`}>
-                                      {member.status === 'connected'
-                                        ? '✅'
-                                        : member.status === 'waiting'
-                                        ? '⏳'
-                                        : '⏳'}
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                {/* Action buttons only for current user and pending connections */}
-                                {member.memberCode === memberCode && member.status === 'pending_connection' && (
-                                  <div className="flex space-x-2 mt-2">
-                                    <button
-                                      onClick={() => handleTrustUnitConnect(member.memberCode)}
-                                      className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
-                                    >
-                                      Connect
-                                    </button>
-                                    <button
-                                      onClick={() => handleTrustUnitWait(member.memberCode)}
-                                      className="px-2 py-1 bg-slate-200 text-slate-800 rounded text-xs hover:bg-slate-300"
-                                    >
-                                      Wait
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-100 border-b border-slate-300">
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Name</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Member Code</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Sent Date</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Accept Date</th>
+                          <th className="px-3 py-2 text-center font-medium text-slate-600 w-1/6"></th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="hover:bg-slate-50">
+                          <td className="px-3 py-3 font-medium text-slate-800 w-1/6">
+                            {capitalizeName(memberData.sponsorName || '')}
+                          </td>
+                          <td className="px-3 py-3 text-slate-600 font-mono w-1/6">
+                            {memberData?.sponsorMemberCode || memberData?.sponsorId || 'N/A'}
+                          </td>
+                          <td className="px-3 py-3 text-slate-600 w-1/6">
+                            {memberData?.createdAt ? new Date(memberData.createdAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-3 py-3 text-slate-600 w-1/6">
+                            {memberData?.createdAt ? new Date(memberData.createdAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td className="px-3 py-3 text-center text-slate-600 w-1/6">
+                            Admin
+                          </td>
+                          <td className="px-3 py-3 w-1/6">
+                            <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700 border border-green-300">
+                              ACTIVE
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   ) : (
-                    <div className="px-6 py-8 text-center text-slate-500">
-                      <div className="text-4xl mb-2">👑</div>
-                      <p>No Trust Units yet</p>
-                      <p className="text-sm">Trust Units form when you and your loved ones share the same sponsor</p>
+                    <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                      No sponsor assigned
+                          </div>
+                    )}
+                          </div>
+                        </div>
+
+              {/* Trust Bonds - PROFESSIONAL TABLE */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                  Trust Bonds ({trustBonds.length})
+                </h3>
+                <div className="bg-white rounded border border-slate-300 overflow-hidden shadow-sm">
+                  {trustBonds.length > 0 ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-100 border-b border-slate-300">
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">From</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">To</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Sent Date</th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Accept Date</th>
+                          <th className="px-3 py-2 text-center font-medium text-slate-600 w-1/6"></th>
+                          <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {trustBonds.map((bond: any) => {
+                          // Debug: Log the bond data to see what fields are available
+                          console.log('🔍 Trust Bond Data (Groups Tab):', {
+                            id: bond.id,
+                            createdAt: bond.createdAt,
+                            acceptedAt: bond.acceptedAt,
+                            status: bond.status,
+                            type: bond.type
+                          });
+                          
+                          // Parse sent date (createdAt) - Handle Firestore Timestamp format
+                          let sentDate = 'N/A';
+                          try {
+                            if (bond.createdAt) {
+                              if (bond.createdAt._seconds) {
+                                // Firestore Timestamp format
+                                sentDate = new Date(bond.createdAt._seconds * 1000).toLocaleDateString();
+                              } else if (bond.createdAt.seconds) {
+                                // Standard Timestamp format
+                                sentDate = new Date(bond.createdAt.seconds * 1000).toLocaleDateString();
+                              } else if (typeof bond.createdAt === 'string') {
+                                sentDate = new Date(bond.createdAt).toLocaleDateString();
+                              } else if (bond.createdAt instanceof Date) {
+                                sentDate = bond.createdAt.toLocaleDateString();
+                              }
+                            }
+                          } catch (e) {
+                            console.log('❌ Error parsing sentDate (Groups):', e);
+                            sentDate = 'N/A';
+                          }
+                          
+                          // Parse accept date (acceptedAt) - Handle Firestore Timestamp format
+                          let acceptDate = 'Pending';
+                          try {
+                            if (bond.acceptedAt) {
+                              if (bond.acceptedAt._seconds) {
+                                // Firestore Timestamp format
+                                acceptDate = new Date(bond.acceptedAt._seconds * 1000).toLocaleDateString();
+                              } else if (bond.acceptedAt.seconds) {
+                                // Standard Timestamp format
+                                acceptDate = new Date(bond.acceptedAt.seconds * 1000).toLocaleDateString();
+                              } else if (typeof bond.acceptedAt === 'string') {
+                                acceptDate = new Date(bond.acceptedAt).toLocaleDateString();
+                              } else if (bond.acceptedAt instanceof Date) {
+                                acceptDate = bond.acceptedAt.toLocaleDateString();
+                              }
+                            } else if (bond.status === 'accepted') {
+                              // If status is accepted but no acceptedAt, use createdAt as fallback
+                              acceptDate = sentDate;
+                            }
+                          } catch (e) {
+                            console.log('❌ Error parsing acceptDate (Groups):', e);
+                            acceptDate = 'N/A';
+                          }
+                          
+                          return (
+                            <tr key={bond.id} className="hover:bg-slate-50 border-b border-slate-200 last:border-0">
+                              <td className="px-3 py-3 w-1/6">
+                                <div className="font-medium text-slate-800">{capitalizeName(bond.fromMemberName || '')}</div>
+                                <div className="text-xs text-slate-500 font-mono">{bond.fromMemberCode}</div>
+                              </td>
+                              <td className="px-3 py-3 w-1/6">
+                                <div className="font-medium text-slate-800">{capitalizeName(bond.toMemberName || '')}</div>
+                                <div className="text-xs text-slate-500 font-mono">{bond.toMemberCode}</div>
+                              </td>
+                              <td className="px-3 py-3 text-slate-600 w-1/6">
+                                {sentDate}
+                              </td>
+                              <td className="px-3 py-3 text-slate-600 w-1/6">
+                                {acceptDate}
+                              </td>
+                              <td className="px-3 py-3 text-center text-slate-600 w-1/6">
+                                <div className="text-xs">
+                                  <div>{bond.type === 'sponsor' ? 'Sponsor' : 'Standard'}</div>
+                                  <div className="text-slate-500">Size: 2</div>
+                      </div>
+                              </td>
+                              <td className="px-3 py-3 w-1/6">
+                                <span className={`px-2 py-1 rounded text-xs font-medium border ${
+                                  bond.status === 'accepted' 
+                                    ? 'bg-green-100 text-green-700 border-green-300' 
+                                    : 'bg-gray-100 text-gray-600 border-gray-300'
+                                }`}>
+                                  {bond.status === 'accepted' ? 'ACTIVE' : 'PENDING'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="px-4 py-6 text-center text-slate-500 text-sm">
+                      No trust bonds established
+                      </div>
+                    )}
+                  </div>
+                </div>
+              
+              {/* Trust Units - CLEAN DESIGN: SEPARATE TYPES */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-2 uppercase tracking-wide">
+                  Trust Units ({trustUnits.length})
+                </h3>
+                
+                  {trustUnits.length > 0 ? (
+                  (() => {
+                    // Group TUs by type
+                    const sameSponsorTUs = trustUnits.filter((tu: any) => tu.tuType === 'same_sponsor' || tu.type === 'same_sponsor');
+                    const triangleCloseTUs = trustUnits.filter((tu: any) => tu.tuType === 'triangle_close' || tu.type === 'triangle_close');
+                    
+                    return (
+                      <div className="space-y-4">
+                        {/* SAME-SPONSOR TUs */}
+                        {sameSponsorTUs.length > 0 && (
+                          <div className="bg-white rounded border border-slate-300 overflow-hidden shadow-sm">
+                            <div className="bg-blue-50 px-4 py-2 border-b border-blue-200">
+                              <h4 className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
+                                Same-Sponsor Units ({sameSponsorTUs.length})
+                              </h4>
+              </div>
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-slate-100 border-b border-slate-300">
+                                  <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Members</th>
+                                  <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Unit ID</th>
+                                  <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6"></th>
+                                  <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Accept Date</th>
+                                  <th className="px-3 py-2 text-center font-medium text-slate-600 w-1/6"></th>
+                                  <th className="px-3 py-2 text-left font-medium text-slate-600 w-1/6">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sameSponsorTUs.map((unit: any) => {
+                          // Debug: Log the unit data to see what fields are available
+                          console.log('🔍 Trust Unit Data (Groups Tab):', {
+                            id: unit.id,
+                            createdAt: unit.createdAt,
+                            status: unit.status,
+                            members: unit.members,
+                            size: unit.size
+                          });
+                          
+                          let createdDate = 'N/A';
+                          try {
+                            if (unit.createdAt) {
+                              if (unit.createdAt._seconds) {
+                                // Firestore Timestamp format
+                                createdDate = new Date(unit.createdAt._seconds * 1000).toLocaleDateString();
+                              } else if (unit.createdAt.seconds) {
+                                // Standard Timestamp format
+                                createdDate = new Date(unit.createdAt.seconds * 1000).toLocaleDateString();
+                              } else if (typeof unit.createdAt === 'string') {
+                                createdDate = new Date(unit.createdAt).toLocaleDateString();
+                              } else if (unit.createdAt instanceof Date) {
+                                createdDate = unit.createdAt.toLocaleDateString();
+                              }
+                            }
+                          } catch (e) {
+                            console.log('❌ Error parsing createdDate (Groups):', e);
+                            createdDate = 'N/A';
+                          }
+                          
+                          return (
+                            <tr key={unit.id} className="hover:bg-slate-50 border-b border-slate-200 last:border-0">
+                              {/* Members Column */}
+                              <td className="px-3 py-3 w-1/6">
+                                {(() => {
+                                  const actualSize = Array.isArray(unit.members) ? unit.members.length : 0;
+                                  const hasExpandedView = actualSize > 3;
+                                  
+                                  if (hasExpandedView) {
+                                    return (
+                                      <div className="space-y-1">
+                                        {unit.members.slice(0, 3).map((member: any, idx: number) => {
+                                          const memberName = typeof member === 'string' ? member : member.name || member.memberCode;
+                                          const memberStatus = typeof member === 'string' ? 'pending' : member.status || 'pending_connection';
+                                          const emoji = memberStatus === 'connected' ? '✅' : memberStatus === 'waiting' ? '⏸️' : '⏳';
+                                          
+                                          return (
+                                            <div key={idx} className="flex items-center space-x-1">
+                                              <span className="text-xs">{emoji}</span>
+                                              <span className="text-xs text-slate-700">{memberName}</span>
                     </div>
-                  )}
+                                          );
+                                        })}
+                                        {actualSize > 3 && (
+                                          <details className="text-xs text-blue-600 cursor-pointer">
+                                            <summary className="font-medium hover:text-blue-700">
+                                              +{actualSize - 3} more members
+                                            </summary>
+                                            <div className="mt-1 space-y-1 pl-3">
+                                              {unit.members.slice(3).map((member: any, idx: number) => {
+                                                const memberName = typeof member === 'string' ? member : member.name || member.memberCode;
+                                                const memberStatus = typeof member === 'string' ? 'pending' : member.status || 'pending_connection';
+                                                const emoji = memberStatus === 'connected' ? '✅' : memberStatus === 'waiting' ? '⏸️' : '⏳';
+                                                
+                                                return (
+                                                  <div key={idx} className="flex items-center space-x-1">
+                                                    <span className="text-xs">{emoji}</span>
+                                                    <span className="text-xs text-slate-700">{memberName}</span>
+                  </div>
+                                                );
+                                              })}
+                              </div>
+                                          </details>
+                                        )}
+                              </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className="flex flex-wrap gap-1">
+                                        {unit.members?.map((member: any, idx: number) => {
+                                          const memberName = typeof member === 'string' ? member : member.name || member.memberCode;
+                                          const memberStatus = typeof member === 'string' ? 'pending' : member.status || 'pending_connection';
+                                          const emoji = memberStatus === 'connected' ? '✅' : memberStatus === 'waiting' ? '⏸️' : '⏳';
+                                          
+                                          return (
+                                            <span key={idx} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium">
+                                              {emoji} {memberName}
+                                            </span>
+                                          );
+                                        })}
+                            </div>
+                                    );
+                                  }
+                                })()}
+                              </td>
+                              {/* Unit ID Column (Second) */}
+                              <td className="px-3 py-3 text-slate-600 font-mono text-xs w-1/6">
+                                #{unit.id?.slice(-8) || 'N/A'}
+                              </td>
+                              
+                              {/* Empty Column (Third - No Sent Date) */}
+                              <td className="px-3 py-3 text-slate-600 w-1/6">
+                                -
+                              </td>
+                              
+                              {/* Accept Date Column (Fourth) */}
+                              <td className="px-3 py-3 text-slate-600 w-1/6">
+                                {createdDate}
+                              </td>
+                              
+                              {/* Type Column (Fifth - NONE) */}
+                              <td className="px-3 py-3 text-center text-slate-600 w-1/6">
+                                <div className="text-xs">
+                                  <div>{unit.tuType === 'same_sponsor' ? 'Same-Sponsor' : unit.tuType === 'triangle_close' ? 'Triangle-Close' : 'TU'}</div>
+                                  <div className="text-slate-500">Type</div>
+                          </div>
+                              </td>
+                              
+                              {/* Status Column (Sixth) */}
+                              <td className="px-3 py-3 w-1/6">
+                                <span className={`px-2 py-1 rounded text-xs font-medium border ${
+                                  unit.status === 'active' || unit.status === 'fully_connected'
+                                    ? 'bg-green-100 text-green-700 border-green-300' 
+                                    : 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                }`}>
+                                  {unit.status === 'active' || unit.status === 'fully_connected' ? 'ACTIVE' : 'PENDING'}
+                                    </span>
+                              </td>
+                            </tr>
+                          );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                        
+                        {/* TRIANGLE-CLOSE TUs */}
+                        {triangleCloseTUs.length > 0 && (
+                          <div className="bg-white rounded border border-slate-300 overflow-hidden shadow-sm">
+                            <div className="bg-purple-50 px-4 py-2 border-b border-purple-200">
+                              <h4 className="text-xs font-semibold text-purple-900 uppercase tracking-wide">
+                                Triangle-Close Units ({triangleCloseTUs.length})
+                              </h4>
+                              <p className="text-xs text-purple-700 mt-0.5">Cross-connections under same root</p>
+                                </div>
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-slate-100 border-b border-slate-300">
+                                  <th className="px-4 py-2 text-left font-medium text-slate-600">Unit ID</th>
+                                  <th className="px-4 py-2 text-left font-medium text-slate-600">Root</th>
+                                  <th className="px-4 py-2 text-left font-medium text-slate-600">Members</th>
+                                  <th className="px-4 py-2 text-left font-medium text-slate-600">Size</th>
+                                  <th className="px-4 py-2 text-left font-medium text-slate-600">Created</th>
+                                  <th className="px-4 py-2 text-left font-medium text-slate-600">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {triangleCloseTUs.map((unit: any) => {
+                                  let createdDate = 'N/A';
+                                  try {
+                                    if (unit.createdAt) {
+                                      if (unit.createdAt.seconds) {
+                                        createdDate = new Date(unit.createdAt.seconds * 1000).toLocaleDateString();
+                                      } else if (typeof unit.createdAt === 'string') {
+                                        createdDate = new Date(unit.createdAt).toLocaleDateString();
+                                      }
+                                    }
+                                  } catch (e) {
+                                    createdDate = 'N/A';
+                                  }
+                                  
+                                  return (
+                                    <tr key={unit.id} className="hover:bg-slate-50 border-b border-slate-200 last:border-0">
+                                      <td className="px-4 py-3 font-mono text-slate-600">
+                                        #{unit.id?.slice(-8) || 'N/A'}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex items-center space-x-1">
+                                          <span className="text-sm">👑</span>
+                                          <span className="text-xs text-slate-700">{unit.sponsorName || 'Root'}</span>
+                                  </div>
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <div className="flex flex-wrap gap-1">
+                                          {unit.members?.map((member: any, idx: number) => {
+                                            const memberName = typeof member === 'string' ? member : member.name || member.memberCode;
+                                            return (
+                                              <span key={idx} className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                                                {memberName}
+                                              </span>
+                                            );
+                                          })}
+                              </div>
+                                      </td>
+                                      <td className="px-4 py-3 text-slate-600">
+                                        {unit.members?.length || 0}
+                                      </td>
+                                      <td className="px-4 py-3 text-slate-600">
+                                        {createdDate}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <span className={`px-2 py-1 rounded text-xs font-medium border ${
+                                          unit.status === 'active' || unit.status === 'fully_connected'
+                                            ? 'bg-green-100 text-green-700 border-green-300' 
+                                            : 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                        }`}>
+                                          {unit.status === 'active' || unit.status === 'fully_connected' ? 'ACTIVE' : 'PENDING'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                        </div>
+                    );
+                  })()
+                ) : (
+                  <div className="px-4 py-6 text-center text-slate-500 text-sm bg-white rounded border border-slate-300">
+                    No trust units created yet - Units form when you invite 2+ members
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
         );
       case 'network':
         return <TrustNetworkManager memberCode={mc} />;
       case 'vaults':
         return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Vaults</h2>
-                <div className="text-sm text-indigo-600 font-medium bg-indigo-50 px-3 py-1 rounded-full">
-                  🔒 Vaults
+          <div className="h-full flex">
+            {/* CENTER - Chat Session Area */}
+            <div className="flex-1 flex flex-col border-r border-slate-200">
+              {selectedVault ? (
+                <div className="h-full flex flex-col">
+                  {/* Chat Header */}
+                  <div className="p-6 border-b border-slate-200 bg-white">
+                    <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-slate-800">
+                              {selectedVault.type === 'bond' ? selectedVault.name : selectedVault.tuName}
+                            </h3>
+                            <p className="text-sm text-slate-600">
+                              {selectedVault.type === 'bond' ? 'Personal Vault' : 'Trust Unit Vault'}
+                            </p>
+                          </div>
+                          {/* SHOW REAL TU MEMBER BUTTONS */}
+                          <div className="flex items-center gap-2">
+                            {renderTuMemberNames()}
+                          </div>
+                        </div>
+                            </div>
+                      {/* Create Vault button removed - vault is created automatically when TU is selected */}
+                            </div>
+                          </div>
+                          
+                  {/* Chat Messages Area */}
+                  <div className="flex-1 p-6 bg-slate-50 overflow-y-auto">
+                    <div className="max-w-4xl mx-auto">
+                      {vaultMessages.length > 0 ? (
+                        <div className="space-y-4">
+                          {vaultMessages.map((message, index) => (
+                            <div key={message.id || index} className="flex items-start space-x-3">
+                              <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                {message.senderDetails?.name?.charAt(0)?.toUpperCase() || 
+                                 message.senderId?.charAt(0)?.toUpperCase() || 'U'}
+                              </div>
+                              <div className="flex-1">
+                                <div className="bg-white rounded-lg p-3 shadow-sm">
+                                  {/* Message Content */}
+                                  {editingMessage?.id === message.id ? (
+                                    <div className="mb-2">
+                                      <input
+                                        type="text"
+                                        value={editContent}
+                                        onChange={(e) => setEditContent(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            handleSaveEdit();
+                                          } else if (e.key === 'Escape') {
+                                            handleCancelEdit();
+                                          }
+                                        }}
+                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        autoFocus
+                                      />
+                                      <div className="flex space-x-2 mt-2">
+                                        <button
+                                          onClick={handleSaveEdit}
+                                          className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition-colors"
+                                        >
+                                          Save
+                                        </button>
+                                        <button
+                                          onClick={handleCancelEdit}
+                                          className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white text-xs rounded-lg transition-colors"
+                                        >
+                                          Cancel
+                                        </button>
+                                    </div>
+                                  </div>
+                                  ) : message.deletedAt ? (
+                                    <p className="text-slate-500 italic">{message.content}</p>
+                                  ) : message.messageType === 'image' ? (
+                                    <div className="mb-2">
+                                      <img 
+                                        src={message.mediaUrl} 
+                                        alt={message.content}
+                                        className="max-w-xs rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                                        onClick={() => window.open(message.mediaUrl, '_blank')}
+                                      />
+                                    </div>
+                                  ) : message.messageType === 'file' ? (
+                                    <div className="mb-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                                      <div className="flex items-center space-x-3">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                          <span className="text-blue-600 text-lg">
+                                            {message.fileType?.includes('pdf') ? '📄' : 
+                                             message.fileType?.includes('text') ? '📝' : '📁'}
+                                          </span>
+                                        </div>
+                                        <div className="flex-1">
+                                          <p className="font-medium text-slate-800">{message.content}</p>
+                                          <p className="text-xs text-slate-500">
+                                            {(message.fileSize / 1024 / 1024).toFixed(2)} MB
+                                    </p>
+                                  </div>
+                                        <a 
+                                          href={message.mediaUrl} 
+                                          download={message.content}
+                                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded-lg transition-colors"
+                                        >
+                                          Download
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-slate-800">{message.content}</p>
+                                  )}
+                                  
+                                  <div className="flex items-center justify-between mt-1">
+                                    <p className="text-xs text-slate-500">
+                                      {message.senderDetails?.name || message.senderId} • {formatMessageDate(message.createdAt)}
+                                      {message.editedAt && <span className="ml-1 text-slate-400">(edited)</span>}
+                                    </p>
+                                    
+                                    {/* Message Actions */}
+                                    {message.senderId === memberCode && !message.deletedAt && (
+                                      <div className="flex items-center space-x-1">
+                                        <button
+                                          onClick={() => handleEditMessage(message)}
+                                          className="text-xs px-2 py-1 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded transition-colors"
+                                          title="Edit message"
+                                        >
+                                          ✏️
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteMessage(message.id)}
+                                          className="text-xs px-2 py-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                          title="Delete message"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </div>
+                                  )}
+                                </div>
+                                
+                                  {/* Message Reactions */}
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <button
+                                      onClick={() => handleMessageReaction(message.id, 'like')}
+                                      className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                                        message.reactions?.[memberCode] === 'like'
+                                          ? 'bg-blue-100 text-blue-600'
+                                          : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
+                                      }`}
+                                    >
+                                      👍 {Object.values(message.reactions || {}).filter(r => r === 'like').length}
+                                    </button>
+                                    <button
+                                      onClick={() => handleMessageReaction(message.id, 'dislike')}
+                                      className={`text-xs px-2 py-1 rounded-full transition-colors ${
+                                        message.reactions?.[memberCode] === 'dislike'
+                                          ? 'bg-red-100 text-red-600'
+                                          : 'bg-gray-100 text-gray-600 hover:bg-red-50'
+                                      }`}
+                                    >
+                                      👎 {Object.values(message.reactions || {}).filter(r => r === 'dislike').length}
+                                    </button>
+                                    {message.reactions?.[memberCode] && (
+                                      <button
+                                        onClick={() => handleMessageReaction(message.id, 'remove')}
+                                        className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                                      >
+                                        Remove
+                                      </button>
+                                )}
+                              </div>
+                                </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                        <div className="text-center py-12">
+                          <div className="text-6xl text-slate-300 mb-4">💬</div>
+                          <h3 className="text-lg font-semibold text-slate-600 mb-2">Enter your message</h3>
+                          <p className="text-slate-500">Attach a file/pic, make a vid, take a pic...</p>
+                    </div>
+                  )}
+                      
+                      {/* Typing Indicator */}
+                      {isTyping && (
+                        <div className="flex items-center space-x-2 text-slate-500 text-sm">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                            <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                </div>
+                          <span>You are typing...</span>
+              </div>
+                      )}
+            </div>
+          </div>
+
+                  {/* Message Input */}
+                  <div 
+                    className={`p-6 border-t border-slate-200 bg-white ${dragOver ? 'bg-blue-50 border-blue-300' : ''}`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <div className="max-w-4xl mx-auto">
+                      {dragOver && (
+                        <div className="mb-4 p-4 border-2 border-dashed border-blue-300 rounded-lg bg-blue-50 text-center">
+                          <p className="text-blue-600 font-medium">Drop file here to upload</p>
+                </div>
+                      )}
+                      
+                      <div className="flex space-x-3">
+                        {/* File Upload Button */}
+                        <div className="relative">
+                          <input
+                            type="file"
+                            id="file-upload"
+                            onChange={handleFileInputChange}
+                            accept="image/*,.pdf,.txt,.doc,.docx"
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor="file-upload"
+                            className="flex items-center justify-center w-12 h-12 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors"
+                            title="Upload file"
+                          >
+                            <span className="text-slate-600 text-lg">📎</span>
+                          </label>
+              </div>
+                        
+                        <input
+                          id="message-input"
+                          type="text"
+                          value={newMessage}
+                          onChange={(e) => {
+                            setNewMessage(e.target.value);
+                            handleTyping();
+                          }}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                          placeholder="Type your message..."
+                          className="flex-1 px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                        
+                        <button
+                          onClick={handleSendMessage}
+                          disabled={!newMessage.trim() || uploadingFile}
+                          className="px-6 py-3 bg-indigo-500 hover:bg-indigo-600 disabled:bg-slate-300 text-white rounded-lg font-medium transition-colors"
+                        >
+                          {uploadingFile ? 'Uploading...' : 'Send'}
+                        </button>
+            </div>
+            
+            {/* Action buttons under input field */}
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <button
+                onClick={() => {
+                  // Add a like reaction to the current message being typed
+                  if (newMessage.trim()) {
+                    setNewMessage(newMessage + ' 👍');
+                  } else {
+                    setNewMessage('👍');
+                  }
+                  const inputField = document.getElementById('message-input');
+                  if (inputField) {
+                    inputField.focus();
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Add Like Reaction"
+              >
+                <span className="text-lg">👍</span>
+                <span className="text-sm">Like</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Start video call functionality
+                  alert('Video call feature coming soon!');
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Start Video Call"
+              >
+                <span className="text-lg">📹</span>
+                <span className="text-sm">Video</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Trigger camera/photo functionality
+                  const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+                  if (fileInput) {
+                    fileInput.accept = 'image/*';
+                    fileInput.click();
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Take/Upload Photo"
+              >
+                <span className="text-lg">📷</span>
+                <span className="text-sm">Photo</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Start voice recording functionality
+                  alert('Voice message feature coming soon!');
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Record Voice Message"
+              >
+                <span className="text-lg">🎤</span>
+                <span className="text-sm">Voice</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Trigger file upload functionality
+                  const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+                  if (fileInput) {
+                    fileInput.accept = '*/*';
+                    fileInput.click();
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Upload/Share File"
+              >
+                <span className="text-lg">📁</span>
+                <span className="text-sm">File</span>
+              </button>
+            </div>
+                      
+                      {uploadingFile && (
+                        <div className="mt-2 text-center">
+                          <div className="inline-flex items-center space-x-2 text-sm text-slate-600">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+                            <span>Uploading file...</span>
+          </div>
+                </div>
+                      )}
+              </div>
+            </div>
+          </div>
+              ) : (
+                <div className="h-full flex items-center justify-center bg-slate-50">
+                  <div className="text-center">
+                    <div className="text-6xl text-slate-300 mb-4">🔒</div>
+                    <h3 className="text-xl font-semibold text-slate-600 mb-2">Select a Vault</h3>
+                    <p className="text-slate-500">Choose a trust bond or trust unit to start a conversation</p>
                 </div>
               </div>
-              <p className="text-slate-600">Vaults functionality coming soon.</p>
+              )}
+            </div>
+
+            {/* RIGHT SIDEBAR - TBs and TUs */}
+            <div className="w-80 bg-white flex flex-col">
+              <div className="p-6 border-b border-slate-200">
+                <h2 className="text-xl font-semibold text-slate-800 flex items-center">
+                  <span className="mr-2 text-indigo-500">🔒</span>
+                  Vaults
+                </h2>
+                <p className="text-sm text-slate-600 mt-1">Private conversations</p>
+              </div>
+              
+              {/* TRUST BONDS SECTION */}
+              <div className="p-4 border-b border-slate-100">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Trust Bonds</h3>
+                <div className="space-y-2">
+                  {trustBonds.length > 0 ? (
+                    trustBonds.map((bond, index) => (
+                      <div 
+                        key={index}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedVault?.type === 'bond' && selectedVault?.id === bond.id
+                            ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100'
+                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                        }`}
+                        onClick={() => handleVaultSelection('bond', bond)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-slate-800">
+                              {bond.direction === 'sent' ? bond.toMemberName : bond.fromMemberName}
+                            </p>
+                          </div>
+                          <div className="flex items-center">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                              bond.status === 'active' 
+                                ? 'bg-green-100 text-green-800 border border-green-200' 
+                                : 'bg-gray-100 text-gray-600 border border-gray-200'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${
+                                bond.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                              }`}></span>
+                              {bond.status === 'active' ? 'Active' : 'Offline'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <p className="text-sm text-slate-500 italic">No trust bonds yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* TRUST UNITS SECTION */}
+              <div className="p-4 flex-1">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 uppercase tracking-wide">Trust Units</h3>
+                <div className="space-y-2">
+                  {trustUnits.length > 0 ? (
+                    trustUnits.map((unit, index) => (
+                      <div 
+                        key={index}
+                        className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedVault?.type === 'unit' && selectedVault?.id === unit.id
+                            ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-100'
+                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                        }`}
+                        onClick={() => handleVaultSelection('unit', unit)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-slate-800">
+                              {unit.tuName || `TU ${unit.id?.slice(-4) || 'N/A'}`}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {unit.members?.length || 0} members
+                            </p>
+                          </div>
+                          <div className="text-xs text-slate-400">
+                            {unit.status === 'active' ? '🟢' : '🟡'}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                      <p className="text-sm text-slate-500 italic">No trust units yet</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -2357,34 +3699,6 @@ function MemberDashboardContent() {
                 </div>
               </div>
               <p className="text-slate-600">Settings functionality coming soon.</p>
-            </div>
-          </div>
-        );
-      case 'admin':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Admin</h2>
-                <div className="text-sm text-yellow-600 font-medium bg-yellow-50 px-3 py-1 rounded-full">
-                  👑 Admin
-                </div>
-              </div>
-              <p className="text-slate-600">Admin functionality coming soon.</p>
-            </div>
-          </div>
-        );
-      case 'notices':
-        return (
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Notices</h2>
-                <div className="text-sm text-red-600 font-medium bg-red-50 px-3 py-1 rounded-full">
-                  📢 Notices
-                </div>
-              </div>
-              <p className="text-slate-600">Notices functionality coming soon.</p>
             </div>
           </div>
         );
@@ -2428,7 +3742,112 @@ function MemberDashboardContent() {
     );
   }
 
-  // BLOCK PAGE RENDERING until modal is resolved
+  // ✅ SHOW TRUST UNIT MODAL FIRST (if pending) - it's an interstitial!
+  if (showTrustUnitModal && currentTrustUnit) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <TrustUnitModal
+          isOpen={showTrustUnitModal}
+          onClose={() => {
+            setShowTrustUnitModal(false);
+            setCurrentTrustUnit(null);
+            setPageReady(true); // Allow page to load after closing modal
+          }}
+          trustUnit={currentTrustUnit}
+          currentMemberCode={memberCode}
+          onConnect={handleTrustUnitConnect}
+          onWait={handleTrustUnitWait}
+        />
+      </div>
+    );
+  }
+
+  // ✅ SHOW VAULT CREATION MODAL
+  if (showVaultCreationModal) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800">Create Vault</h3>
+              <button 
+                onClick={() => setShowVaultCreationModal(false)} 
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Close modal"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="text-4xl mb-4">🔒</div>
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Choose Vault Type</h4>
+                <p className="text-gray-600">Select how you want to communicate</p>
+              </div>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleCreateVault('chat')}
+                  className="w-full p-4 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">💬</div>
+                    <div className="text-left">
+                      <div className="font-semibold text-indigo-800">Chat</div>
+                      <div className="text-sm text-indigo-600">Text messages and media sharing</div>
+                    </div>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => handleCreateVault('video')}
+                  className="w-full p-4 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">📹</div>
+                    <div className="text-left">
+                      <div className="font-semibold text-green-800">Video Call</div>
+                      <div className="text-sm text-green-600">Face-to-face conversations</div>
+                    </div>
+                  </div>
+                </button>
+                
+                <button
+                  onClick={() => handleCreateVault('share')}
+                  className="w-full p-4 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="text-2xl">📁</div>
+                    <div className="text-left">
+                      <div className="font-semibold text-purple-800">Share</div>
+                      <div className="text-sm text-purple-600">File and document sharing</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="flex justify-end p-6 border-t border-gray-200">
+              <button 
+                onClick={() => setShowVaultCreationModal(false)}
+                className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // BLOCK PAGE RENDERING until data loads
   if (!pageReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -2438,19 +3857,6 @@ function MemberDashboardContent() {
           <p className="text-slate-600">Preparing your personalized experience</p>
         </div>
         
-        {/* Trust Unit Modal - Show even when page is not ready */}
-        <TrustUnitModal
-          isOpen={showTrustUnitModal}
-          onClose={() => {
-            setShowTrustUnitModal(false);
-            setCurrentTrustUnit(null);
-            setPageReady(true); // Allow page to load after modal is closed
-          }}
-          trustUnit={currentTrustUnit}
-          currentMemberCode={memberCode}
-          onConnect={handleTrustUnitConnect}
-          onWait={handleTrustUnitWait}
-        />
       </div>
     );
   }
@@ -2747,7 +4153,7 @@ function MemberDashboardContent() {
                             }
                           } catch (error) {
                             console.error('Upload error:', error);
-                            setErrorMessage('Failed to upload voice recording: ' + error.message);
+                            setErrorMessage('Failed to upload voice recording: ' + (error as Error).message);
                             setShowErrorModal(true);
                           }
                         }}
@@ -2772,20 +4178,7 @@ function MemberDashboardContent() {
         </div>
       )}
 
-      {/* Trust Unit Modal - Only show when page is ready */}
-      {pageReady && (
-        <TrustUnitModal
-          isOpen={showTrustUnitModal}
-          onClose={() => {
-            setShowTrustUnitModal(false);
-            setCurrentTrustUnit(null);
-          }}
-          trustUnit={currentTrustUnit}
-          currentMemberCode={memberCode}
-          onConnect={handleTrustUnitConnect}
-          onWait={handleTrustUnitWait}
-        />
-      )}
+      {/* Trust Unit Modal now rendered as interstitial before page loads */}
     </div>
   );
 }

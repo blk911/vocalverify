@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const sentBondsSnapshot = await trustBondsRef.where('fromMemberCode', '==', memberCode).get();
     const receivedBondsSnapshot = await trustBondsRef.where('toMemberCode', '==', memberCode).get();
 
-    const trustBonds = [];
+    const trustBonds: any[] = [];
     
     sentBondsSnapshot.forEach((doc) => {
       trustBonds.push({

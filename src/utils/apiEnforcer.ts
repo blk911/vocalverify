@@ -81,6 +81,13 @@ export const REQUIRED_APIS = {
     returns: 'WaitResponse'
   },
   
+  // Trust Bonds APIs
+  'trust-bonds.list': {
+    method: 'GET',
+    params: ['memberCode'],
+    returns: 'TrustBondsResponse'
+  },
+  
   // Member APIs
   'member.send-invitation': {
     method: 'POST',
@@ -165,6 +172,9 @@ export const apiCalls = {
     
   getTrustUnits: (memberCode: string) =>
     createApiCall('trust-units.list', { memberCode }),
+  
+  getTrustBonds: (memberCode: string) =>
+    createApiCall('trust-bonds.list', { memberCode }),
     
   getAdminStats: () =>
     createApiCall('admin.stats', {}),

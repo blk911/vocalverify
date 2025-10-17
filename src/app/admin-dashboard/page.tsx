@@ -12,14 +12,14 @@ export default function AdminDashboard() {
     pendingMembers: 0,
     registeredMembers: 0
   });
-  const [members, setMembers] = useState([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showClearAllModal, setShowClearAllModal] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState(null);
+  const [memberToDelete, setMemberToDelete] = useState<any>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -30,9 +30,9 @@ export default function AdminDashboard() {
     phone: ''
   });
   const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [inviteHistory, setInviteHistory] = useState([]);
-  const [notFoundRegistry, setNotFoundRegistry] = useState([]);
-  const [nfArchive, setNfArchive] = useState([]);
+  const [inviteHistory, setInviteHistory] = useState<any[]>([]);
+  const [notFoundRegistry, setNotFoundRegistry] = useState<any[]>([]);
+  const [nfArchive, setNfArchive] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteMember = (member) => {
+  const handleDeleteMember = (member: any) => {
     setMemberToDelete(member);
     setShowDeleteModal(true);
   };
@@ -166,7 +166,7 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Delete error:', error);
       setShowErrorModal(true);
-      setErrorMessage('Error deleting member: ' + error.message);
+      setErrorMessage('Error deleting member: ' + (error as Error).message);
     } finally {
       setIsDeleting(false);
       setShowDeleteModal(false);
@@ -258,7 +258,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleSetActive = async (invite) => {
+  const handleSetActive = async (invite: any) => {
     try {
       const response = await fetch('/api/admin/set-invite-active', {
         method: 'POST',
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDeleteInvite = async (invite) => {
+  const handleDeleteInvite = async (invite: any) => {
     if (!confirm(`Are you sure you want to delete the invite for ${invite.name}? This will remove all artifacts (admin, member, temp data) with no remnants.`)) {
       return;
     }
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleArchiveEntry = async (entry) => {
+  const handleArchiveEntry = async (entry: any) => {
     // Archive functionality removed - use delete instead
     if (!confirm(`Delete ${entry.name} from Not Found Registry?`)) {
       return;
@@ -760,30 +760,65 @@ export default function AdminDashboard() {
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Name</th>
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Phone</th>
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Sponsor</th>
-                    <th className="text-left py-2 px-3 font-semibold text-gray-700">Date</th>
+                    <th className="text-left py-2 px-3 font-semibold text-gray-700">Sent Date</th>
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Status</th>
+                    <th className="text-left py-2 px-3 font-semibold text-gray-700">Accept Date</th>
                     <th className="text-left py-2 px-3 font-semibold text-gray-700">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(inviteHistory || []).slice(0, 5).map((invite, index) => (
-                    <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
-                      <td className="py-2 px-3 font-medium text-gray-900">{invite.name}</td>
-                      <td className="py-2 px-3 text-gray-600">{invite.phone}</td>
-                      <td className="py-2 px-3 text-gray-600">{invite.sponsorName}</td>
-                      <td className="py-2 px-3 text-gray-600">{new Date(invite.invitedAt).toLocaleDateString()}</td>
-                      <td className="py-2 px-3">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          (invite.status || 'pending') === 'pending' 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : (invite.status || 'pending') === 'active'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {safeUpperCase(invite.status, 'PENDING')}
-                        </span>
-                      </td>
-                      <td className="py-2 px-3">
+                  {(inviteHistory || []).slice(0, 5).map((invite, index) => {
+                    // Parse sent date (createdAt) - handle all Firestore formats
+                    let sentDate = 'N/A';
+                    try {
+                      if (invite.createdAt) {
+                        if (invite.createdAt.seconds) {
+                          sentDate = new Date(invite.createdAt.seconds * 1000).toLocaleDateString();
+                        } else if (typeof invite.createdAt === 'string') {
+                          sentDate = new Date(invite.createdAt).toLocaleDateString();
+                        } else if (invite.createdAt instanceof Date) {
+                          sentDate = invite.createdAt.toLocaleDateString();
+                        }
+                      }
+                    } catch (e) {
+                      sentDate = 'N/A';
+                    }
+                    
+                    // Parse accept date (matchedAt)
+                    let acceptDate = 'Pending';
+                    try {
+                      if (invite.matchedAt) {
+                        if (invite.matchedAt.seconds) {
+                          acceptDate = new Date(invite.matchedAt.seconds * 1000).toLocaleDateString();
+                        } else if (typeof invite.matchedAt === 'string') {
+                          acceptDate = new Date(invite.matchedAt).toLocaleDateString();
+                        } else if (invite.matchedAt instanceof Date) {
+                          acceptDate = invite.matchedAt.toLocaleDateString();
+                        }
+                      }
+                    } catch (e) {
+                      acceptDate = 'Pending';
+                    }
+                    
+                    return (
+                      <tr key={index} className="border-b border-gray-200 hover:bg-gray-50">
+                        <td className="py-2 px-3 font-medium text-gray-900">{invite.name}</td>
+                        <td className="py-2 px-3 text-gray-600">{invite.phone}</td>
+                        <td className="py-2 px-3 text-gray-600">{invite.sponsorName}</td>
+                        <td className="py-2 px-3 text-gray-600">{sentDate}</td>
+                        <td className="py-2 px-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            (invite.status || 'pending') === 'pending' 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : (invite.status || 'pending') === 'active'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {safeUpperCase(invite.status, 'PENDING')}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 text-gray-600">{acceptDate}</td>
+                        <td className="py-2 px-3">
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleSetActive(invite)}
@@ -802,12 +837,13 @@ export default function AdminDashboard() {
                             Delete
                 </button>
               </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {inviteHistory.length > 5 && (
                     <tr>
-                      <td colSpan={6} className="py-2 px-3 text-center text-gray-500 text-xs">
+                      <td colSpan={7} className="py-2 px-3 text-center text-gray-500 text-xs">
                         ... and {inviteHistory.length - 5} more invites
                       </td>
                     </tr>
@@ -857,7 +893,29 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-500">
-                        {new Date(entry.archivedAt).toLocaleDateString()} {new Date(entry.archivedAt).toLocaleTimeString()}
+                        {(() => {
+                          let archivedDate = 'N/A';
+                          let archivedTime = '';
+                          try {
+                            if (entry.archivedAt) {
+                              let dateObj;
+                              if (entry.archivedAt.seconds) {
+                                dateObj = new Date(entry.archivedAt.seconds * 1000);
+                              } else if (typeof entry.archivedAt === 'string') {
+                                dateObj = new Date(entry.archivedAt);
+                              } else if (entry.archivedAt instanceof Date) {
+                                dateObj = entry.archivedAt;
+                              }
+                              if (dateObj) {
+                                archivedDate = dateObj.toLocaleDateString();
+                                archivedTime = dateObj.toLocaleTimeString();
+                              }
+                            }
+                          } catch (e) {
+                            archivedDate = 'N/A';
+                          }
+                          return `${archivedDate} ${archivedTime}`;
+                        })()}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

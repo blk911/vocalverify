@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/firebaseAdmin";
+import { getDb, getStorage } from "@/lib/firebaseAdmin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     // Get phone digits from request for path matching
     const phoneSuffix = phoneDigits ? `_${phoneDigits.replace(/\D/g, '')}` : '';
     const path = `voice/${uploadId}${phoneSuffix}.webm`; // MUST match upload route
+    const storage = getStorage();
     const fileRef = storage.bucket().file(path);
     
     // Check if file exists in Firebase Storage

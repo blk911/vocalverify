@@ -12,9 +12,12 @@ interface TrustUnitMember {
 interface TrustUnitOpportunity {
   unitId: string;
   sponsorName: string;
+  sponsorCode?: string;
+  rootSponsorId?: string;
   members: TrustUnitMember[];
   status: string;
   createdAt: string;
+  type?: 'same_sponsor' | 'triangle_close';
 }
 
 interface TrustUnitModalProps {
@@ -47,7 +50,10 @@ export default function TrustUnitModal({
   if (!isVisible || !trustUnit) return null;
 
   const currentMember = trustUnit.members.find(m => m.memberCode === currentMemberCode);
-  const otherMembers = trustUnit.members.filter(m => m.memberCode !== currentMemberCode);
+  // ✅ DEDUPLICATE members to prevent React key errors
+  const allMembers = trustUnit.members.filter((member, index, self) => 
+    index === self.findIndex(m => m.memberCode === member.memberCode)
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -65,9 +71,16 @@ export default function TrustUnitModal({
             <div>
               <h3 className="text-lg font-semibold text-slate-800">
                 👑 Trust Unit Opportunity
+                {trustUnit.type === 'triangle_close' && (
+                  <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full border border-purple-300">
+                    🔺 Triangle Close
+                  </span>
+                )}
               </h3>
               <p className="text-sm text-slate-600 mt-1">
-                Each of you is connected by invitation, indicate your choice to connect on your profile pic
+                {trustUnit.type === 'triangle_close' 
+                  ? 'You share a common root sponsor and have formed a connection triangle'
+                  : 'Each of you is connected by invitation, indicate your choice to connect on your profile pic'}
               </p>
             </div>
             <button
@@ -85,69 +98,86 @@ export default function TrustUnitModal({
 
         {/* Content */}
         <div className="px-6 py-4">
-          {/* Sponsor Info */}
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl">👑</span>
-              <div>
-                <p className="font-medium text-blue-800">Sponsor: {trustUnit.sponsorName}</p>
-                <p className="text-sm text-blue-600">Trust Unit Members</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Trust Unit Members */}
+          {/* Trust Unit Members - All Three Equally */}
           <div className="space-y-3">
             <h4 className="font-medium text-slate-800 mb-2">Trust Unit Members:</h4>
             
-            {/* Current Member */}
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-lg">💎</span>
-                </div>
-                <div>
-                  <p className="font-medium text-slate-800">{currentMember?.name}</p>
-                  <p className="text-sm text-slate-600">You</p>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => onConnect(currentMemberCode)}
-                  className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium hover:bg-green-200 transition-colors"
-                >
-                  Connect
-                </button>
-                <button
-                  onClick={() => onWait(currentMemberCode)}
-                  className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium hover:bg-yellow-200 transition-colors"
-                >
-                  Wait
-                </button>
-              </div>
-            </div>
-
-            {/* Other Members */}
-            {otherMembers.map((member, index) => (
-              <div key={member.memberCode} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
-                    <span className="text-lg">💎</span>
+            {/* All Members - Equal Display */}
+            {allMembers.map((member, index) => {
+              const isCurrentUser = member.memberCode === currentMemberCode;
+              return (
+                <div key={member.memberCode} className={`flex items-center justify-between p-3 rounded-lg ${
+                  isCurrentUser 
+                    ? 'bg-blue-50 border-2 border-blue-300' 
+                    : 'bg-slate-50 border border-slate-200'
+                }`}>
+                  <div className="flex items-center space-x-3">
+                    {member.profilePicture ? (
+                      <img 
+                        src={member.profilePicture} 
+                        alt={member.name}
+                        className={`w-10 h-10 rounded-full object-cover border-2 ${
+                          isCurrentUser ? 'border-blue-400' : 'border-slate-300'
+                        }`}
+                      />
+                    ) : (
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
+                        isCurrentUser ? 'bg-blue-100 border-blue-400' : 'bg-slate-100 border-slate-300'
+                      }`}>
+                        <span className="text-lg">💎</span>
+                      </div>
+                    )}
+                    <div>
+                      <p className={`font-medium ${isCurrentUser ? 'text-slate-900' : 'text-slate-800'}`}>
+                        {member.name}
+                      </p>
+                      <p className={`text-xs ${isCurrentUser ? 'text-blue-600 font-medium' : 'text-slate-500'}`}>
+                        {isCurrentUser ? 'You' : 
+                         member.status === 'pending_connection' ? 'Pending connection' : 
+                         member.status === 'connected' ? 'Connected' : 
+                         member.status === 'waiting' ? 'Waiting' : 'Pending'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-slate-800">{member.name}</p>
-                    <p className="text-sm text-slate-600">
-                      {member.status === 'pending_connection' ? 'Waiting for connection' : 
-                       member.status === 'connected' ? 'Connected' : 'Waiting'}
-                    </p>
-                  </div>
+                  
+                  {/* Action Buttons or Status */}
+                  {isCurrentUser ? (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => onConnect(currentMemberCode)}
+                        className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-semibold hover:bg-green-600 transition-colors shadow-sm"
+                      >
+                        Connect
+                      </button>
+                      <button
+                        onClick={() => onWait(currentMemberCode)}
+                        className="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm font-semibold hover:bg-yellow-600 transition-colors shadow-sm"
+                      >
+                        Wait
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      {member.status === 'pending_connection' && (
+                        <span className="text-sm font-medium text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full border border-yellow-300">
+                          ⏳ Pending
+                        </span>
+                      )}
+                      {member.status === 'connected' && (
+                        <span className="text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full border border-green-300">
+                          ✅ Connected
+                        </span>
+                      )}
+                      {member.status === 'waiting' && (
+                        <span className="text-sm font-medium text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-300">
+                          ⏸️ Waiting
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-slate-500">
-                  {member.status === 'pending_connection' ? 'â³' : 
-                   member.status === 'connected' ? 'âœ…' : 'â¸ï¸'}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Instructions */}
@@ -174,7 +204,3 @@ export default function TrustUnitModal({
     </div>
   );
 }
-
-
-
-

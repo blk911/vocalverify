@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
       status: (user as any).status || 'unknown',
       hasVoice: (user as any).hasVoice || false,
       profilePicture: (user as any).profilePicture || '',
-      createdAt: (user as any).createdAt || new Date().toISOString()
+      createdAt: (user as any).createdAt || new Date().toISOString(),
+      sponsorName: (user as any).sponsorName || (user as any).sponsorMemberName || 'N/A',
+      sponsorId: (user as any).sponsorId || (user as any).sponsorMemberCode || 'N/A'
     }));
 
 
@@ -58,7 +60,9 @@ export async function POST(req: NextRequest) {
       status: (user as any).status || 'unknown',
       hasVoice: (user as any).hasVoice || false,
       profilePicture: (user as any).profilePicture || '',
-      createdAt: (user as any).createdAt || new Date().toISOString()
+      createdAt: (user as any).createdAt || new Date().toISOString(),
+      sponsorName: (user as any).sponsorName || (user as any).sponsorMemberName || 'N/A',
+      sponsorId: (user as any).sponsorId || (user as any).sponsorMemberCode || 'N/A'
     }));
 
 

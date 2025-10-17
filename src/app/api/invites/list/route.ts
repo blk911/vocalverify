@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
-export const GET = asyncHandler(async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
   logger.info('API Request: GET /api/invites/list', 'API');
   
   const { searchParams } = new URL(req.url);
@@ -20,7 +20,7 @@ export const GET = asyncHandler(async (req: NextRequest) => {
   try {
     // Get invites sent by this member
     const invitesSnapshot = await db.collection('invites')
-      .where('inviterMemberCode', '==', memberCode)
+      .where('sponsorMemberCode', '==', memberCode)
       .get();
     
     // Sort in memory instead of using orderBy (avoids Firestore index requirement)
@@ -48,4 +48,4 @@ export const GET = asyncHandler(async (req: NextRequest) => {
     logger.error('Error fetching invites', error, 'InvitesList', { memberCode });
     throw error;
   }
-});
+}

@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       .limit(100)
       .get();
     
-    const notFound = [];
+    const notFound: any[] = [];
     notFoundSnapshot.docs.forEach(doc => {
       notFound.push({
         id: doc.id,

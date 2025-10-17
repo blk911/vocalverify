@@ -2,7 +2,7 @@ import "server-only";
 import type { App } from "firebase-admin/app";
 import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { getStorage, type Storage } from "firebase-admin/storage";
+import { getStorage as getFirebaseStorage, type Storage } from "firebase-admin/storage";
 import { initializeProductionConfig } from "./productionConfig";
 import { autoInitializeDatabase } from "./databaseInit";
 
@@ -59,7 +59,7 @@ export function getStorage(): Storage {
     const app = initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), projectId });
     globalThis.__vv_admin_app__ = app;
   }
-  const storage = getStorage(globalThis.__vv_admin_app__!);
+  const storage = getFirebaseStorage(globalThis.__vv_admin_app__!);
   globalThis.__vv_admin_storage__ = storage;
   return storage;
 }

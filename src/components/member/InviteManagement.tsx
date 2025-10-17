@@ -13,7 +13,7 @@ export default function InviteManagement({ memberName, memberCode }: InviteManag
     phone: ''
   });
   const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [inviteHistory, setInviteHistory] = useState([]);
+  const [inviteHistory, setInviteHistory] = useState<any[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');

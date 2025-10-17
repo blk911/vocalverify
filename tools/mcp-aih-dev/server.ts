@@ -27,7 +27,7 @@ function writeFileDeep(filePath: string, data: string) {
 }
 
 // Tool 1: Scaffold a Next.js API route stub
-server.tool(
+(server as any).tool(
   {
     name: "scaffold_api",
     description:
@@ -39,7 +39,7 @@ server.tool(
       method: z.enum(["GET", "POST"]).default("GET"),
     }),
   },
-  async ({ route, method }) => {
+  async ({ route, method }: { route: any; method: any }) => {
     try {
       log.info("scaffold_api", { route, method });
       
@@ -94,13 +94,13 @@ export async function ${method}() {
 );
 
 // Tool 2: Read a file
-server.tool(
+(server as any).tool(
   {
     name: "read_file",
     description: "Read a project file as text",
     inputSchema: z.object({ file: z.string() }),
   },
-  async ({ file }) => {
+  async ({ file }: { file: any }) => {
     // Security: Prevent path traversal outside project root
     const normalized = path.normalize(file);
     if (normalized.startsWith("..") || path.isAbsolute(normalized)) {
@@ -139,13 +139,13 @@ server.tool(
 );
 
 // Tool 3: Write a file (overwrite)
-server.tool(
+(server as any).tool(
   {
     name: "write_file",
     description: "Write a project file (overwrites). Provide relative path.",
     inputSchema: z.object({ file: z.string(), text: z.string() }),
   },
-  async ({ file, text }) => {
+  async ({ file, text }: { file: any; text: any }) => {
     // Security: Prevent path traversal outside project root
     const normalized = path.normalize(file);
     if (normalized.startsWith("..") || path.isAbsolute(normalized)) {
@@ -181,7 +181,7 @@ server.tool(
 );
 
 // Tool 4: List existing API routes
-server.tool(
+(server as any).tool(
   {
     name: "list_api_routes",
     description: "List existing src/app/api/**/route.ts files",

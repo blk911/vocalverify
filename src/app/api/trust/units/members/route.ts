@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
     
     const { searchParams } = new URL(req.url);
     const memberCode = searchParams.get('memberCode');
+    const tuId = searchParams.get('tuId');
     
     if (!memberCode) {
       return NextResponse.json(
@@ -34,26 +35,48 @@ export async function GET(req: NextRequest) {
       );
     }
     
-    // Find member's trust unit
-    const trustUnitQuery = await db.collection('trustUnits')
-      .where('members', 'array-contains', memberCode)
-      .limit(1)
-      .get();
+    let trustUnitDoc;
     
-    if (trustUnitQuery.empty) {
-      return NextResponse.json({
-        ok: true,
-        memberCode,
-        trustUnitId: null,
-        members: [],
-        count: 0,
-        message: "Member is not part of any trust unit"
-      });
+    if (tuId) {
+      // If tuId is provided, get that specific trust unit
+      console.log('🔍 Getting specific TU by ID:', tuId);
+      trustUnitDoc = await db.collection('trustUnits').doc(tuId).get();
+      if (!trustUnitDoc.exists) {
+        console.error('❌ TU not found with ID:', tuId);
+        return NextResponse.json({
+          ok: false,
+          error: "Trust unit not found"
+        }, { status: 404 });
+      }
+      console.log('✅ Found TU by ID:', tuId);
+    } else {
+      // Find member's trust unit
+      const trustUnitQuery = await db.collection('trustUnits')
+        .where('memberCodes', 'array-contains', memberCode)
+        .limit(1)
+        .get();
+      
+      if (trustUnitQuery.empty) {
+        return NextResponse.json({
+          ok: true,
+          memberCode,
+          trustUnitId: null,
+          members: [],
+          count: 0,
+          message: "Member is not part of any trust unit"
+        });
+      }
+      
+      trustUnitDoc = trustUnitQuery.docs[0];
     }
-    
-    const trustUnitDoc = trustUnitQuery.docs[0];
     const trustUnitData = trustUnitDoc.data();
-    const memberCodes = trustUnitData.members || [];
+    if (!trustUnitData) {
+      return NextResponse.json({
+        ok: false,
+        error: 'Trust Unit data not found'
+      }, { status: 404 });
+    }
+    const memberCodes = trustUnitData.memberCodes || [];
     
     // Get full details for all members in the trust unit
     const memberDetails = await Promise.all(
@@ -120,6 +143,9 @@ export async function GET(req: NextRequest) {
       ok: true,
       memberCode,
       trustUnitId: trustUnitDoc.id,
+      tuName: trustUnitData?.tuName || null, // ✅ Include TU name
+      sponsorCode: trustUnitData?.sponsorCode || null, // ✅ Include sponsor info
+      sponsorName: trustUnitData?.sponsorName || null,
       members: memberDetails,
       count: memberDetails.length,
       directConnections: memberDetails.filter(m => m.connectionStatus === 'direct').length,
@@ -134,6 +160,10 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+
+
+
 
 
 

@@ -11,13 +11,11 @@ export default function Sidebar({ activeSection = 'overview', onSectionChange, o
   const menuItems = [
     { id: 'overview', label: 'Home', icon: '🏠' },
     { id: 'invites', label: 'Invites', icon: '📤' },
-    { id: 'groups', label: 'Groups', icon: '👥' },
+    { id: 'groups', label: 'Connections', icon: '👥' },
     { id: 'network', label: 'Network', icon: '🌐' },
     { id: 'vaults', label: 'Vaults', icon: '🔒' },
     { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
-    { id: 'admin', label: 'Admin', icon: '🔧' },
-    { id: 'notices', label: 'Notices', icon: '📢' }
+    { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];
 
   return (

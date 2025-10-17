@@ -33,25 +33,25 @@ export async function GET(req: NextRequest) {
     let voiceData = null;
     if (personNumber === 'profile') {
       voiceData = {
-        audioUrl: userData.voiceUrl || null,
-        hasVoice: userData.hasVoice || false,
+        audioUrl: userData?.voiceUrl || null,
+        hasVoice: userData?.hasVoice || false,
         voiceType: 'profile'
       };
     } else if (personNumber === 'phone') {
       voiceData = {
-        audioUrl: userData.phoneVoiceUrl || null,
-        hasVoice: userData.hasPhoneVoice || false,
+        audioUrl: userData?.phoneVoiceUrl || null,
+        hasVoice: userData?.hasPhoneVoice || false,
         voiceType: 'phone'
       };
     } else {
       voiceData = {
         profileVoice: {
-          audioUrl: userData.voiceUrl || null,
-          hasVoice: userData.hasVoice || false
+          audioUrl: userData?.voiceUrl || null,
+          hasVoice: userData?.hasVoice || false
         },
         phoneVoice: {
-          audioUrl: userData.phoneVoiceUrl || null,
-          hasVoice: userData.hasPhoneVoice || false
+          audioUrl: userData?.phoneVoiceUrl || null,
+          hasVoice: userData?.hasPhoneVoice || false
         }
       };
     }

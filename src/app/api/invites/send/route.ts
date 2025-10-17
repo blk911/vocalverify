@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/firebaseAdmin';
 import { normalizeName } from '@/utils/nameUtils';
+import { checkInviteBlock, detectCircularInvite } from '@/lib/tuBlockerUtil';
+import { getFeatureFlags } from '@/lib/featureFlags';
+import { logInviteBlocked, logCircularInvite } from '@/lib/telemetry';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +25,42 @@ export async function POST(request: NextRequest) {
     const { name: properName, nameLower } = normalizeName(invitedName);
     console.log('[INVITES-SEND] Name normalized:', { input: invitedName, properName, nameLower });
     
-    // Get member data to get sponsor name
+    // ✅ PHASE 5: Get feature flags
+    const flags = getFeatureFlags();
+    
+    // ✅ PHASE 4: Check if invite should be blocked (same TU)
+    if (flags.tuInviteBlocker) {
+      console.log('[INVITES-SEND] Checking for duplicate TU membership (ENABLED)...');
+      const blockerResult = await checkInviteBlock(memberCode, properName, invitedPhone);
+      
+      if (blockerResult.shouldBlock) {
+        console.log(`⚠️  [INVITES-SEND] BLOCKED: ${blockerResult.reason}`);
+        
+        // ✅ PHASE 5: Log telemetry
+        logInviteBlocked(memberCode, properName, blockerResult.reason, blockerResult.existingTUId);
+        
+        return NextResponse.json({ 
+          error: blockerResult.reason,
+          code: 'ALREADY_IN_TU',
+          existingTUId: blockerResult.existingTUId
+        }, { status: 409 }); // 409 Conflict
+      }
+    } else {
+      console.log('[INVITES-SEND] TU invite blocker (DISABLED by feature flag)');
+    }
+    
+    // ✅ PHASE 4: Check for circular invite (allowed, but log it)
+    if (flags.circularInviteDetection) {
+      const circularCheck = await detectCircularInvite(memberCode, invitedPhone);
+      if (circularCheck.isCircular) {
+        console.log(`📍 [INVITES-SEND] Circular invite detected (allowed): ${circularCheck.reason}`);
+        
+        // ✅ PHASE 5: Log telemetry
+        logCircularInvite(memberCode, invitedPhone, true);
+      }
+    }
+    
+    // Get member data to get sponsor name AND rootSponsorId
     console.log('[INVITES-SEND] Fetching sponsor data for memberCode:', memberCode);
     const memberDoc = await db.collection('users').doc(memberCode).get();
     const memberData = memberDoc.exists ? memberDoc.data() : null;
@@ -32,10 +70,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Member not found' }, { status: 404 });
     }
     
+    // ✅ Ensure inviter has rootSponsorId
+    let inviterRootSponsorId = memberData?.rootSponsorId;
+    if (!inviterRootSponsorId) {
+      console.log('[INVITES-SEND] ⚠️ Inviter missing rootSponsorId, setting to self');
+      await db.collection('users').doc(memberCode).update({
+        rootSponsorId: memberCode,
+        depth: 0,
+        updatedAt: new Date().toISOString()
+      });
+      inviterRootSponsorId = memberCode;
+    }
+    
     console.log('[INVITES-SEND] Sponsor info:', { 
       sponsorId: memberCode,
       sponsorName: memberData?.name || memberData?.fullName,
-      sponsorMemberCode: memberCode
+      sponsorMemberCode: memberCode,
+      rootSponsorId: inviterRootSponsorId
     });
     
     const inviteData = {
@@ -44,11 +95,15 @@ export async function POST(request: NextRequest) {
       phone: invitedPhone,           // ✅ Added for check-with-invite compatibility
       invitedPhone,                  // Keep original field
       invitedName: properName,       // Keep original field
-      sponsorId: memberCode,
+      inviterId: memberCode,         // ✅ NEW: memberCode of sender
+      inviteeId: null,               // ✅ NEW: set on acceptance/registration
+      sponsorId: memberCode,         // Legacy compatibility
       sponsorName: memberData?.name || memberData?.fullName || 'Member',
       sponsorMemberCode: memberCode,
+      rootSponsorId: inviterRootSponsorId,  // ✅ NEW: copy from inviter
       status: 'pending',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
     };
 
@@ -56,6 +111,73 @@ export async function POST(request: NextRequest) {
     const docRef = await invitesRef.add(inviteData);
     
     console.log('✅ [INVITES-SEND] Invite created successfully:', docRef.id);
+
+    // 🔍 CROSS-CONNECTION DETECTION: Check for same-sponsor TU prospect
+    console.log('[INVITES-SEND] 🔍 Checking for cross-connection TU prospect...');
+    
+    try {
+      // Check if invitee is already registered with same sponsor
+      const inviteeQuery = await db.collection('users')
+        .where('phone', '==', invitedPhone)
+        .where('status', '==', 'registered')
+        .limit(1)
+        .get();
+      
+      if (!inviteeQuery.empty) {
+        const inviteeDoc = inviteeQuery.docs[0];
+        const inviteeData = inviteeDoc.data();
+        const inviteeMemberCode = inviteeDoc.id;
+        
+        console.log('[INVITES-SEND] Found registered invitee:', {
+          memberCode: inviteeMemberCode,
+          name: inviteeData?.name,
+          sponsorId: inviteeData?.sponsorId,
+          rootSponsorId: inviteeData?.rootSponsorId
+        });
+        
+        // Check if both have same sponsor (cross-connection detected!)
+        if (inviteeData?.sponsorId === memberData?.sponsorId && 
+            inviteeData?.sponsorId !== '0000000000') {
+          
+          console.log('🎯 [INVITES-SEND] CROSS-CONNECTION DETECTED!');
+          console.log(`   Inviter: ${memberCode} (sponsor: ${memberData?.sponsorId})`);
+          console.log(`   Invitee: ${inviteeMemberCode} (sponsor: ${inviteeData?.sponsorId})`);
+          console.log(`   Same sponsor: ${memberData?.sponsorId}`);
+          
+          // Create TU prospect immediately
+          const { createTUProspect } = await import('@/lib/trustUnits');
+          const prospectResult = await createTUProspect(memberCode, inviteeMemberCode);
+          
+          if (prospectResult.success) {
+            console.log(`✅ [INVITES-SEND] TU prospect created: ${prospectResult.unitId}`);
+            console.log(`   Status: ${prospectResult.status}`);
+            console.log(`   Members: [${prospectResult.members?.join(', ') || 'none'}]`);
+            
+            // Return TU prospect data for immediate modal
+            return NextResponse.json({ 
+              success: true, 
+              inviteId: docRef.id,
+              message: 'Invite sent successfully',
+              trustUnitProspect: {
+                unitId: prospectResult.unitId,
+                status: prospectResult.status,
+                members: prospectResult.members,
+                crossConnection: true
+              }
+            });
+          } else {
+            console.log(`❌ [INVITES-SEND] Failed to create TU prospect: ${prospectResult.error}`);
+          }
+        } else {
+          console.log('[INVITES-SEND] No cross-connection (different sponsors or admin)');
+        }
+      } else {
+        console.log('[INVITES-SEND] Invitee not yet registered, no cross-connection check');
+      }
+    } catch (crossError: any) {
+      console.error('[INVITES-SEND] Error in cross-connection detection:', crossError);
+      // Don't fail the invite if cross-connection check fails
+    }
 
     // ⚡ CRITICAL: Check if this name exists in notFoundRegistry
     const nfSnapshot = await db.collection('notFoundRegistry')
