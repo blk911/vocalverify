@@ -112,6 +112,34 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ [INVITES-SEND] Invite created successfully:', docRef.id);
 
+    // 📱 QR CODE GENERATION: Generate QR code for the invite
+    console.log('[INVITES-SEND] 📱 Generating QR code for invite...');
+    try {
+      const qrResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/invites/generate-qr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inviteId: docRef.id,
+          inviteeName: properName,
+          inviteePhone: invitedPhone,
+          inviterName: memberData?.name || memberData?.fullName || 'Member',
+          inviterCode: memberCode
+        })
+      });
+
+      if (qrResponse.ok) {
+        const qrData = await qrResponse.json();
+        console.log('✅ [INVITES-SEND] QR code generated successfully:', qrData.qrCodeUrl);
+      } else {
+        console.log('⚠️ [INVITES-SEND] QR code generation failed, but invite was created');
+      }
+    } catch (qrError) {
+      console.error('[INVITES-SEND] QR code generation error:', qrError);
+      // Don't fail the invite if QR generation fails
+    }
+
     // 🔍 CROSS-CONNECTION DETECTION: Check for same-sponsor TU prospect
     console.log('[INVITES-SEND] 🔍 Checking for cross-connection TU prospect...');
     

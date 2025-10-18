@@ -55,6 +55,10 @@ function MemberDashboardContent() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
+  // QR Code modal states
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRInvite, setSelectedQRInvite] = useState<any>(null);
+  
   // Collapsible section states
   const [expandedSections, setExpandedSections] = useState({
     step1: false,
@@ -413,6 +417,49 @@ function MemberDashboardContent() {
     );
   };
 
+  // Render Bond member names (2 members: current user + bond partner)
+  const renderBondMemberNames = () => {
+    console.log('🔗 renderBondMemberNames called:', { 
+      selectedVault, 
+      type: selectedVault?.type,
+      memberData: memberData?.name,
+      hasMemberData: !!memberData
+    });
+    
+    if (!selectedVault || selectedVault.type !== 'bond') {
+      console.log('🔗 Not a bond vault, returning null');
+      return null;
+    }
+
+    const bond = selectedVault;
+    const currentMemberName = memberData?.name || 'Spencer Wendt'; // ✅ FALLBACK: Use Spencer as default
+    const partnerName = bond.direction === 'sent' ? bond.toMemberName : bond.fromMemberName;
+    
+    console.log('🔗 Rendering bond members:', { 
+      currentMemberName, 
+      partnerName, 
+      bond,
+      bondDirection: bond.direction,
+      toMemberName: bond.toMemberName,
+      fromMemberName: bond.fromMemberName
+    });
+    
+    // ✅ FIXED: Always show member names with fallback
+    
+    return (
+      <div className="flex items-center gap-1">
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 border border-green-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+          {currentMemberName}
+        </span>
+        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-600 border border-gray-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+          {partnerName}
+        </span>
+      </div>
+    );
+  };
+
   useEffect(() => {
     // Load member data from database
     loadMemberData();
@@ -529,6 +576,96 @@ function MemberDashboardContent() {
   const handleEditInvite = () => {
     // Return to form editing
     setShowInvitePreview(false);
+  };
+
+  // QR Code modal handler
+  const openQRModal = (invite: any) => {
+    setSelectedQRInvite(invite);
+    setShowQRModal(true);
+  };
+
+  // QR Code action handlers
+  const generateQRCode = async (invite: any) => {
+    try {
+      const response = await fetch('/api/invites/generate-qr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inviteId: invite.id,
+          inviteeName: invite.name,
+          inviteePhone: invite.phone,
+          inviterName: memberData?.name || memberData?.fullName || 'Member',
+          inviterCode: memberCode
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedQRInvite(prev => ({
+          ...prev,
+          qrCodeUrl: data.qrCodeUrl,
+          qrData: data.qrData
+        }));
+        // Reload invite list to get updated data
+        await loadInvitedLovedOnes();
+      } else {
+        setErrorMessage('Failed to generate QR code');
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error('QR generation error:', error);
+      setErrorMessage('Failed to generate QR code');
+      setShowErrorModal(true);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setSuccessMessage('Link copied to clipboard!');
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error('Copy error:', error);
+      setErrorMessage('Failed to copy to clipboard');
+      setShowErrorModal(true);
+    }
+  };
+
+  const downloadQRCode = async (invite: any) => {
+    try {
+      if (invite.qrCodeUrl) {
+        const response = await fetch(invite.qrCodeUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `qr-code-${invite.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setSuccessMessage('QR code downloaded!');
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      setErrorMessage('Failed to download QR code');
+      setShowErrorModal(true);
+    }
+  };
+
+  const shareViaSMS = (invite: any) => {
+    try {
+      const message = `Hi ${invite.name}! I've invited you to join my trusted network. Scan this QR code or visit: ${invite.qrData}`;
+      const smsUrl = `sms:${invite.phone}?body=${encodeURIComponent(message)}`;
+      window.open(smsUrl, '_blank');
+    } catch (error) {
+      console.error('SMS share error:', error);
+      setErrorMessage('Failed to open SMS');
+      setShowErrorModal(true);
+    }
   };
 
   const handleSendInvite = async () => {
@@ -919,7 +1056,13 @@ function MemberDashboardContent() {
 
   // Vault handler functions
   const handleVaultSelection = async (type: string, item: any) => {
-    console.log('🔄 VAULT SELECTION:', { type, itemId: item.id, itemName: item.tuName || item.toMemberName || item.fromMemberName });
+    console.log('🔄 VAULT SELECTION:', { 
+      type, 
+      itemId: item.id, 
+      itemName: item.tuName || item.toMemberName || item.fromMemberName,
+      itemKeys: Object.keys(item),
+      itemData: item
+    });
     
     // Stop previous polling
     stopMessagePolling();
@@ -932,12 +1075,19 @@ function MemberDashboardContent() {
     setNewMessage(''); // Clear any pending message input
     
     // Don't set vault ID until we have a valid one
-    setSelectedVault({
+    const newSelectedVault = {
       type,
       ...item,
       id: undefined, // Clear any existing vault ID
       vaultId: undefined
-    });
+    };
+    console.log('🔄 SETTING SELECTED VAULT:', newSelectedVault);
+    setSelectedVault(newSelectedVault);
+    
+    // ✅ DEBUG: Track state changes
+    setTimeout(() => {
+      console.log('🔄 SELECTED VAULT STATE AFTER SET:', selectedVault);
+    }, 100);
     
     let vaultId = item.vaultId; // Only use existing vaultId, not item.id
     
@@ -976,7 +1126,16 @@ function MemberDashboardContent() {
         if (data.ok && data.vaultId) {
           vaultId = data.vaultId;
           console.log('✅ Trust Bond vault created successfully:', vaultId);
-          setSelectedVault((prev: any) => ({ ...prev, id: vaultId, vaultId }));
+          setSelectedVault((prev: any) => {
+            const newState = { 
+              ...prev, 
+              id: vaultId, 
+              vaultId,
+              type: 'bond' // ✅ FIXED: Explicitly preserve bond type
+            };
+            console.log('🔄 BOND VAULT STATE UPDATE:', { prev, newState });
+            return newState;
+          });
         } else {
           console.error('Error creating vault:', data.error);
           setVaultMessages([]);
@@ -1029,7 +1188,16 @@ function MemberDashboardContent() {
         if (data.ok && data.vaultId) {
           vaultId = data.vaultId;
           console.log('✅ TU vault created successfully:', vaultId);
-          setSelectedVault((prev: any) => ({ ...prev, id: vaultId, vaultId }));
+          setSelectedVault((prev: any) => {
+            const newState = { 
+              ...prev, 
+              id: vaultId, 
+              vaultId,
+              type: 'unit' // ✅ FIXED: Explicitly preserve unit type
+            };
+            console.log('🔄 UNIT VAULT STATE UPDATE:', { prev, newState });
+            return newState;
+          });
           await loadVaultMessages(vaultId);
           startMessagePolling(vaultId);
           
@@ -2694,17 +2862,18 @@ function MemberDashboardContent() {
           {invitedLovedOnes.length > 0 ? (
             <div className="overflow-x-auto">
               {/* Column Headers */}
-              <div className="grid grid-cols-10 gap-2 mb-3 px-2 py-1 bg-slate-100 rounded text-xs font-medium text-slate-600 uppercase tracking-wide">
+              <div className="grid grid-cols-12 gap-2 mb-3 px-2 py-1 bg-slate-100 rounded text-xs font-medium text-slate-600 uppercase tracking-wide">
                 <div className="col-span-3">Name</div>
                 <div className="col-span-2">Phone</div>
                 <div className="col-span-3">Sent Date</div>
+                <div className="col-span-2">QR Code</div>
                 <div className="col-span-2">Actions</div>
               </div>
               
               {/* Invite Rows */}
               <div className="space-y-1">
                 {invitedLovedOnes.map((invite, index) => (
-                  <div key={index} className="grid grid-cols-10 gap-2 p-2 bg-white rounded border hover:bg-slate-50 transition-colors">
+                  <div key={index} className="grid grid-cols-12 gap-2 p-2 bg-white rounded border hover:bg-slate-50 transition-colors">
                     {/* Name */}
                     <div className="col-span-3 flex items-center">
                       <div className="flex items-center space-x-2">
@@ -2747,6 +2916,16 @@ function MemberDashboardContent() {
                       </span>
                     </div>
                     
+                    {/* QR Code */}
+                    <div className="col-span-2 flex items-center justify-center">
+                      <button 
+                        onClick={() => openQRModal(invite)}
+                        className="text-xs text-green-600 hover:text-green-800 px-2 py-1 rounded border border-green-200 hover:bg-green-50 transition-colors"
+                        title="View QR Code"
+                      >
+                        📱 QR
+                      </button>
+                    </div>
                     
                     {/* Actions */}
                     <div className="col-span-2 flex items-center space-x-1">
@@ -3253,15 +3432,45 @@ function MemberDashboardContent() {
                         <div className="flex items-center gap-4">
                           <div>
                             <h3 className="text-lg font-semibold text-slate-800">
-                              {selectedVault.type === 'bond' ? selectedVault.name : selectedVault.tuName}
+                              {(() => {
+                                console.log('🏷️ Vault title logic:', { 
+                                  selectedVault, 
+                                  type: selectedVault?.type,
+                                  hasSelectedVault: !!selectedVault,
+                                  selectedVaultKeys: selectedVault ? Object.keys(selectedVault) : []
+                                });
+                                if (selectedVault.type === 'bond') {
+                                  const name = selectedVault.direction === 'sent' ? selectedVault.toMemberName : selectedVault.fromMemberName;
+                                  console.log('🏷️ Bond title:', { 
+                                    name, 
+                                    direction: selectedVault.direction,
+                                    toMemberName: selectedVault.toMemberName,
+                                    fromMemberName: selectedVault.fromMemberName
+                                  });
+                                  return name || 'Trust Bond';
+                                } else {
+                                  console.log('🏷️ Unit title:', selectedVault.tuName);
+                                  return selectedVault.tuName || 'Trust Unit';
+                                }
+                              })()}
                             </h3>
                             <p className="text-sm text-slate-600">
-                              {selectedVault.type === 'bond' ? 'Personal Vault' : 'Trust Unit Vault'}
+                              {(() => {
+                                console.log('🏷️ Vault subtitle logic:', { type: selectedVault?.type });
+                                return selectedVault.type === 'bond' ? 'Trust Bond Vault' : 'Trust Unit Vault';
+                              })()}
                             </p>
                           </div>
-                          {/* SHOW REAL TU MEMBER BUTTONS */}
+                          {/* SHOW MEMBER BUTTONS FOR BOTH BONDS AND UNITS */}
                           <div className="flex items-center gap-2">
-                            {renderTuMemberNames()}
+                            {(() => {
+                              console.log('🔘 Member buttons logic:', { 
+                                type: selectedVault?.type,
+                                hasSelectedVault: !!selectedVault,
+                                selectedVaultKeys: selectedVault ? Object.keys(selectedVault) : []
+                              });
+                              return selectedVault.type === 'bond' ? renderBondMemberNames() : renderTuMemberNames();
+                            })()}
                           </div>
                         </div>
                             </div>
@@ -3864,14 +4073,64 @@ function MemberDashboardContent() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Topbar memberData={memberData} micAvailable={micAvailable} cameraAvailable={cameraAvailable} />
+      
       <div className="flex">
         <Sidebar 
           activeSection={activeSection} 
           onSectionChange={setActiveSection}
           onLogout={handleLogout}
         />
-        <main className="flex-1 p-6">
-          {renderContent()}
+        <main className="flex-1">
+          {/* NEW HORIZONTAL NAVIGATION DIV - INSIDE MAIN CONTENT */}
+          <div className="bg-white border-b border-gray-200 px-6 py-3">
+            <div className="flex items-center space-x-6">
+              <button
+                onClick={() => setActiveSection('invites')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeSection === 'invites'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                📤 INVITE
+              </button>
+              <button
+                onClick={() => setActiveSection('groups')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeSection === 'groups'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                👥 CONNECT
+              </button>
+              <button
+                onClick={() => setActiveSection('network')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeSection === 'network'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                🌐 NETWORK
+              </button>
+              <button
+                onClick={() => setActiveSection('vaults')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  activeSection === 'vaults'
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                🔒 VAULTS
+              </button>
+            </div>
+          </div>
+          
+          {/* MAIN CONTENT WITH PADDING */}
+          <div className="p-6">
+            {renderContent()}
+          </div>
         </main>
       </div>
       
@@ -3973,6 +4232,77 @@ function MemberDashboardContent() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && selectedQRInvite && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-lg w-full mx-4">
+            <div className="text-center">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-800">QR Code for {capitalizeName(selectedQRInvite.name)}</h3>
+                <button 
+                  onClick={() => setShowQRModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              {/* QR Code Display */}
+              <div className="mb-6">
+                {selectedQRInvite.qrCodeUrl ? (
+                  <div className="flex flex-col items-center">
+                    <img 
+                      src={selectedQRInvite.qrCodeUrl} 
+                      alt="QR Code" 
+                      className="w-48 h-48 border border-slate-200 rounded-lg mb-4"
+                    />
+                    <p className="text-sm text-slate-600 mb-2">Scan to join the network</p>
+                    <p className="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded">
+                      {selectedQRInvite.qrData || 'QR Code URL'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center py-8">
+                    <div className="text-4xl mb-4">📱</div>
+                    <p className="text-slate-600 mb-4">QR Code not available</p>
+                    <button 
+                      onClick={() => generateQRCode(selectedQRInvite)}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                      Generate QR Code
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Action Buttons */}
+              {selectedQRInvite.qrCodeUrl && (
+                <div className="flex flex-wrap gap-2 justify-center">
+                  <button 
+                    onClick={() => copyToClipboard(selectedQRInvite.qrData)}
+                    className="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm"
+                  >
+                    📋 Copy Link
+                  </button>
+                  <button 
+                    onClick={() => downloadQRCode(selectedQRInvite)}
+                    className="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 text-sm"
+                  >
+                    💾 Download
+                  </button>
+                  <button 
+                    onClick={() => shareViaSMS(selectedQRInvite)}
+                    className="px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm"
+                  >
+                    📱 SMS Share
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
