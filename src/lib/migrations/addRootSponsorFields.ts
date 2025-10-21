@@ -1,10 +1,10 @@
 /**
  * Migration: Add rootSponsorId and depth fields to users collection
- * 
+ *
  * Business Rules:
  * - rootSponsorId: The ultimate sponsor at the top of the chain (immutable once set)
  * - depth: How many levels deep from root (0 = root, 1 = direct invite from root, etc.)
- * 
+ *
  * Logic:
  * 1. For users with no sponsor (admin-created) → rootSponsorId = their own memberCode, depth = 0
  * 2. For users with sponsor → traverse up to find root, calculate depth
@@ -21,15 +21,19 @@ interface UserData {
   status?: string;
 }
 
-export async function migrateAddRootSponsorFields(dryRun: boolean = true): Promise<{
+export async function migrateAddRootSponsorFields(
+  dryRun: boolean = true
+): Promise<{
   success: boolean;
   updated: number;
   skipped: number;
   errors: number;
   results: any[];
 }> {
-  console.log(`\n🔄 [MIGRATION] Starting rootSponsorId + depth migration (dryRun=${dryRun})\n`);
-  
+  console.log(
+    `\n🔄 [MIGRATION] Starting rootSponsorId + depth migration (dryRun=${dryRun})\n`
+  );
+
   const db = getDb();
   const results: any[] = [];
   let updated = 0;
@@ -54,14 +58,20 @@ export async function migrateAddRootSponsorFields(dryRun: boolean = true): Promi
 
       try {
         // Skip if already migrated
-        if (userData.rootSponsorId !== undefined && userData.depth !== undefined) {
+        if (
+          userData.rootSponsorId !== undefined &&
+          userData.depth !== undefined
+        ) {
           console.log(`⏭️  [${memberCode}] Already migrated, skipping`);
           skipped++;
           continue;
         }
 
         // Calculate rootSponsorId and depth
-        const { rootSponsorId, depth } = calculateRootAndDepth(memberCode, userMap);
+        const { rootSponsorId, depth } = calculateRootAndDepth(
+          memberCode,
+          userMap
+        );
 
         const result = {
           memberCode,
@@ -69,7 +79,7 @@ export async function migrateAddRootSponsorFields(dryRun: boolean = true): Promi
           sponsor: userData.sponsorMemberCode || 'none',
           rootSponsorId,
           depth,
-          action: dryRun ? 'would-update' : 'updated'
+          action: dryRun ? 'would-update' : 'updated',
         };
 
         console.log(`✅ [${memberCode}] ${(userData as any).name || 'N/A'}`);
@@ -81,18 +91,17 @@ export async function migrateAddRootSponsorFields(dryRun: boolean = true): Promi
           await doc.ref.update({
             rootSponsorId,
             depth,
-            migratedAt: new Date().toISOString()
+            migratedAt: new Date().toISOString(),
           });
         }
 
         results.push(result);
         updated++;
-
       } catch (error: any) {
         console.error(`❌ [${memberCode}] Error:`, error.message);
         results.push({
           memberCode,
-          error: error.message
+          error: error.message,
         });
         errors++;
       }
@@ -109,9 +118,8 @@ export async function migrateAddRootSponsorFields(dryRun: boolean = true): Promi
       updated,
       skipped,
       errors,
-      results
+      results,
     };
-
   } catch (error: any) {
     console.error('❌ [MIGRATION] Fatal error:', error);
     return {
@@ -119,14 +127,14 @@ export async function migrateAddRootSponsorFields(dryRun: boolean = true): Promi
       updated,
       skipped,
       errors: errors + 1,
-      results
+      results,
     };
   }
 }
 
 /**
  * Calculate rootSponsorId and depth for a user
- * 
+ *
  * Algorithm:
  * 1. If user has no sponsor → they ARE the root (depth = 0)
  * 2. If user has sponsor → traverse up the chain until we hit root
@@ -144,14 +152,18 @@ function calculateRootAndDepth(
   while (true) {
     // Circular reference protection
     if (visited.has(current)) {
-      console.warn(`⚠️  [${memberCode}] Circular reference detected at ${current}, treating as root`);
+      console.warn(
+        `⚠️  [${memberCode}] Circular reference detected at ${current}, treating as root`
+      );
       return { rootSponsorId: current, depth };
     }
     visited.add(current);
 
     const userData = userMap.get(current);
     if (!userData) {
-      console.warn(`⚠️  [${memberCode}] User ${current} not found in map, treating as root`);
+      console.warn(
+        `⚠️  [${memberCode}] User ${current} not found in map, treating as root`
+      );
       return { rootSponsorId: current, depth };
     }
 
@@ -168,14 +180,10 @@ function calculateRootAndDepth(
 
     // Safety: max depth of 100
     if (depth > 100) {
-      console.warn(`⚠️  [${memberCode}] Max depth exceeded, stopping at ${current}`);
+      console.warn(
+        `⚠️  [${memberCode}] Max depth exceeded, stopping at ${current}`
+      );
       return { rootSponsorId: current, depth: 100 };
     }
   }
 }
-
-
-
-
-
-

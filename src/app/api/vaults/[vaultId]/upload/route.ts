@@ -13,53 +13,81 @@ export async function POST(
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const senderId = formData.get('senderId') as string;
-    const messageType = formData.get('messageType') as string || 'file';
+    const messageType = (formData.get('messageType') as string) || 'file';
 
     if (!file || !senderId) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'File and sender ID are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'File and sender ID are required',
+        },
+        { status: 400 }
+      );
     }
 
     // Verify user has access to this vault
     const db = getDb();
     const vaultDoc = await db.collection('vaults').doc(vaultId).get();
     if (!vaultDoc.exists) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Vault not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Vault not found',
+        },
+        { status: 404 }
+      );
     }
 
     const vaultData = vaultDoc.data();
     if (!vaultData?.participants?.includes(senderId)) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Access denied' 
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Access denied',
+        },
+        { status: 403 }
+      );
     }
 
     // Validate file type and size
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'];
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'application/pdf',
+      'text/plain',
+    ];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'File type not allowed' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'File type not allowed',
+        },
+        { status: 400 }
+      );
     }
 
     if (file.size > maxSize) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'File too large (max 10MB)' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'File too large (max 10MB)',
+        },
+        { status: 400 }
+      );
     }
 
     // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'vaults', vaultId);
+    const uploadsDir = join(
+      process.cwd(),
+      'public',
+      'uploads',
+      'vaults',
+      vaultId
+    );
     await mkdir(uploadsDir, { recursive: true });
 
     // Generate unique filename
@@ -86,20 +114,24 @@ export async function POST(
       fileType: file.type,
       reactions: {},
       createdAt: new Date(),
-      vaultId
+      vaultId,
     };
 
     // Add message to vault's messages subcollection
-    const messageRef = await db.collection('vaults')
+    const messageRef = await db
+      .collection('vaults')
       .doc(vaultId)
       .collection('messages')
       .add(messageData);
 
     // Update vault's lastActivity and messageCount
-    await db.collection('vaults').doc(vaultId).update({
-      lastActivity: new Date(),
-      messageCount: (vaultData.messageCount || 0) + 1
-    });
+    await db
+      .collection('vaults')
+      .doc(vaultId)
+      .update({
+        lastActivity: new Date(),
+        messageCount: (vaultData.messageCount || 0) + 1,
+      });
 
     // Get sender details for response
     let senderDetails = null;
@@ -110,7 +142,7 @@ export async function POST(
         senderDetails = {
           memberCode: senderId,
           name: senderData?.name || senderData?.fullName || 'Unknown',
-          profilePicture: senderData?.profilePicture || null
+          profilePicture: senderData?.profilePicture || null,
         };
       }
     } catch (error) {
@@ -131,17 +163,19 @@ export async function POST(
         fileType: file.type,
         reactions: {},
         createdAt: messageData.createdAt,
-        vaultId
+        vaultId,
       },
       messageId: messageRef.id,
-      mediaUrl: publicUrl
+      mediaUrl: publicUrl,
     });
-
   } catch (error) {
     console.error('Error uploading file:', error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: 'Failed to upload file' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Failed to upload file',
+      },
+      { status: 500 }
+    );
   }
 }

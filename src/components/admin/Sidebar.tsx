@@ -1,4 +1,4 @@
-﻿"use client";
+﻿'use client';
 import { useState } from 'react';
 
 interface AdminSidebarProps {
@@ -8,7 +8,12 @@ interface AdminSidebarProps {
   onLogout?: () => void;
 }
 
-export default function AdminSidebar({ adminData, activeSection = 'dashboard', onSectionChange, onLogout }: AdminSidebarProps) {
+export default function AdminSidebar({
+  adminData,
+  activeSection = 'dashboard',
+  onSectionChange,
+  onLogout,
+}: AdminSidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
     { id: 'members', label: 'Member Management', icon: '👥' },
@@ -18,26 +23,26 @@ export default function AdminSidebar({ adminData, activeSection = 'dashboard', o
     { id: 'security', label: 'Security', icon: '🔒' },
     { id: 'settings', label: 'System Settings', icon: '⚙️' },
     { id: 'logs', label: 'System Logs', icon: '📋' },
-    { id: 'backup', label: 'Backup & Restore', icon: '💾' }
+    { id: 'backup', label: 'Backup & Restore', icon: '💾' },
   ];
 
   return (
-    <div className="w-64 bg-gray-900 text-white min-h-screen">
-      <div className="p-6">
+    <div className='w-64 bg-gray-900 text-white min-h-screen'>
+      <div className='p-6'>
         {/* Admin Logo */}
-        <div className="flex items-center space-x-3 mb-8">
-          <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">A</span>
+        <div className='flex items-center space-x-3 mb-8'>
+          <div className='w-10 h-10 bg-gradient-to-br from-red-500 to-orange-600 rounded-lg flex items-center justify-center'>
+            <span className='text-white font-bold text-lg'>A</span>
           </div>
           <div>
-            <h2 className="text-lg font-bold">Admin Panel</h2>
-            <p className="text-xs text-gray-400">System Management</p>
+            <h2 className='text-lg font-bold'>Admin Panel</h2>
+            <p className='text-xs text-gray-400'>System Management</p>
           </div>
         </div>
 
         {/* Admin Navigation */}
-        <nav className="space-y-2">
-          {menuItems.map((item) => (
+        <nav className='space-y-2'>
+          {menuItems.map(item => (
             <button
               key={item.id}
               onClick={() => onSectionChange?.(item.id)}
@@ -55,8 +60,8 @@ export default function AdminSidebar({ adminData, activeSection = 'dashboard', o
 
         {/* Logout Button - Always visible */}
         <button
-          onClick={onLogout || (() => window.location.href = '/')}
-          className="w-full mt-6 px-4 py-3 text-red-400 hover:bg-red-800 hover:text-white rounded-lg transition-colors"
+          onClick={onLogout || (() => (window.location.href = '/'))}
+          className='w-full mt-6 px-4 py-3 text-red-400 hover:bg-red-800 hover:text-white rounded-lg transition-colors'
         >
           🚪 Logout
         </button>

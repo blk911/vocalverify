@@ -39,7 +39,7 @@ export class DeviceFingerprint {
       cookieEnabled: navigator.cookieEnabled,
       doNotTrack: navigator.doNotTrack || 'unspecified',
       hardwareConcurrency: navigator.hardwareConcurrency || 0,
-      maxTouchPoints: navigator.maxTouchPoints || 0
+      maxTouchPoints: navigator.maxTouchPoints || 0,
     };
   }
 
@@ -53,15 +53,15 @@ export class DeviceFingerprint {
 
     const deviceInfo = this.collectDeviceInfo();
     const fingerprintString = JSON.stringify(deviceInfo);
-    
+
     // Simple hash function (in production, use crypto.subtle.digest)
     let hash = 0;
     for (let i = 0; i < fingerprintString.length; i++) {
       const char = fingerprintString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
-    
+
     this.fingerprint = Math.abs(hash).toString(36);
     return this.fingerprint;
   }
@@ -82,8 +82,8 @@ export class DeviceFingerprint {
         body: JSON.stringify({
           memberCode,
           fingerprint,
-          ...deviceInfo
-        })
+          ...deviceInfo,
+        }),
       });
 
       if (response.ok) {
@@ -113,7 +113,3 @@ export class DeviceFingerprint {
 
 // Export singleton instance
 export const deviceFingerprint = DeviceFingerprint.getInstance();
-
-
-
-

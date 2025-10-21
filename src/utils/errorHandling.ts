@@ -6,7 +6,10 @@
 // Safe property access with fallbacks
 export const safeGet = (obj: any, path: string, defaultValue: any = '') => {
   try {
-    return path.split('.').reduce((current, key) => current?.[key], obj) ?? defaultValue;
+    return (
+      path.split('.').reduce((current, key) => current?.[key], obj) ??
+      defaultValue
+    );
   } catch {
     return defaultValue;
   }
@@ -142,18 +145,21 @@ export const getDefaultErrorFallback = (error: Error) => ({
         type: 'h3',
         props: {
           className: 'text-red-800 font-medium',
-          children: 'Something went wrong'
-        }
+          children: 'Something went wrong',
+        },
       },
       {
         type: 'p',
         props: {
           className: 'text-red-600 text-sm mt-1',
-          children: process.env.NODE_ENV === 'development' ? error.message : 'Please try again later'
-        }
-      }
-    ]
-  }
+          children:
+            process.env.NODE_ENV === 'development'
+              ? error.message
+              : 'Please try again later',
+        },
+      },
+    ],
+  },
 });
 
 export const getDefaultLoadingFallback = () => ({
@@ -168,17 +174,17 @@ export const getDefaultLoadingFallback = () => ({
           {
             type: 'div',
             props: {
-              className: 'h-4 bg-gray-200 rounded w-3/4 mb-2'
-            }
+              className: 'h-4 bg-gray-200 rounded w-3/4 mb-2',
+            },
           },
           {
             type: 'div',
             props: {
-              className: 'h-4 bg-gray-200 rounded w-1/2'
-            }
-          }
-        ]
-      }
-    }
-  }
+              className: 'h-4 bg-gray-200 rounded w-1/2',
+            },
+          },
+        ],
+      },
+    },
+  },
 });

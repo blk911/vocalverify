@@ -1,17 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/firebaseAdmin";
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/lib/firebaseAdmin';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    
     // Get all users from Firestore
     const db = getDb();
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
 
     // Format members for admin dashboard
@@ -23,19 +22,19 @@ export async function GET(req: NextRequest) {
       hasVoice: (user as any).hasVoice || false,
       profilePicture: (user as any).profilePicture || '',
       createdAt: (user as any).createdAt || new Date().toISOString(),
-      sponsorName: (user as any).sponsorName || (user as any).sponsorMemberName || 'N/A',
-      sponsorId: (user as any).sponsorId || (user as any).sponsorMemberCode || 'N/A'
+      sponsorName:
+        (user as any).sponsorName || (user as any).sponsorMemberName || 'N/A',
+      sponsorId:
+        (user as any).sponsorId || (user as any).sponsorMemberCode || 'N/A',
     }));
-
 
     return NextResponse.json({
       ok: true,
-      members
+      members,
     });
-
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: "Failed to fetch members" },
+      { ok: false, error: 'Failed to fetch members' },
       { status: 500 }
     );
   }
@@ -43,13 +42,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    
     // Get all users from Firestore
     const db = getDb();
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
 
     // Format members for admin dashboard
@@ -61,19 +59,19 @@ export async function POST(req: NextRequest) {
       hasVoice: (user as any).hasVoice || false,
       profilePicture: (user as any).profilePicture || '',
       createdAt: (user as any).createdAt || new Date().toISOString(),
-      sponsorName: (user as any).sponsorName || (user as any).sponsorMemberName || 'N/A',
-      sponsorId: (user as any).sponsorId || (user as any).sponsorMemberCode || 'N/A'
+      sponsorName:
+        (user as any).sponsorName || (user as any).sponsorMemberName || 'N/A',
+      sponsorId:
+        (user as any).sponsorId || (user as any).sponsorMemberCode || 'N/A',
     }));
-
 
     return NextResponse.json({
       ok: true,
-      members
+      members,
     });
-
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: "Failed to fetch members" },
+      { ok: false, error: 'Failed to fetch members' },
       { status: 500 }
     );
   }

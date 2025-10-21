@@ -7,22 +7,29 @@ export async function GET(request: NextRequest) {
     const memberCode = searchParams.get('memberCode');
 
     if (!memberCode) {
-      return NextResponse.json({ error: 'Member code is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Member code is required' },
+        { status: 400 }
+      );
     }
 
     const db = getDb();
     const trustUnitsRef = db.collection('trustUnits');
-    
+
     // ✅ Get TUs where user is a member (using memberCodes array for object-based members)
-    const memberSnapshot = await trustUnitsRef.where('memberCodes', 'array-contains', memberCode).get();
-    
+    const memberSnapshot = await trustUnitsRef
+      .where('memberCodes', 'array-contains', memberCode)
+      .get();
+
     // ✅ Get TUs where user is the sponsor
-    const sponsorSnapshot = await trustUnitsRef.where('sponsorCode', '==', memberCode).get();
+    const sponsorSnapshot = await trustUnitsRef
+      .where('sponsorCode', '==', memberCode)
+      .get();
 
     const trustUnitsMap = new Map();
-    
+
     // Add member TUs
-    memberSnapshot.forEach((doc) => {
+    memberSnapshot.forEach(doc => {
       const data = doc.data();
       trustUnitsMap.set(doc.id, {
         id: doc.id,
@@ -31,12 +38,12 @@ export async function GET(request: NextRequest) {
         sponsorCode: data.sponsorCode || null,
         sponsorName: data.sponsorName || null,
         ...data,
-        viewerRole: 'member'
+        viewerRole: 'member',
       });
     });
-    
+
     // Add sponsor TUs (avoid duplicates)
-    sponsorSnapshot.forEach((doc) => {
+    sponsorSnapshot.forEach(doc => {
       if (!trustUnitsMap.has(doc.id)) {
         const data = doc.data();
         trustUnitsMap.set(doc.id, {
@@ -46,13 +53,15 @@ export async function GET(request: NextRequest) {
           sponsorCode: data.sponsorCode || null,
           sponsorName: data.sponsorName || null,
           ...data,
-          viewerRole: 'sponsor'
+          viewerRole: 'sponsor',
         });
       }
     });
 
     const trustUnits = Array.from(trustUnitsMap.values());
-    console.log(`✅ Found ${trustUnits.length} trust units for ${memberCode} (${memberSnapshot.size} as member, ${sponsorSnapshot.size} as sponsor)`);
+    console.log(
+      `✅ Found ${trustUnits.length} trust units for ${memberCode} (${memberSnapshot.size} as member, ${sponsorSnapshot.size} as sponsor)`
+    );
 
     // ✅ Group by rootSponsorId for easier UI rendering
     const groupedByRoot = trustUnits.reduce((acc: any, tu: any) => {
@@ -64,15 +73,18 @@ export async function GET(request: NextRequest) {
       return acc;
     }, {});
 
-    return NextResponse.json({ 
-      ok: true, 
+    return NextResponse.json({
+      ok: true,
       trustUnits,
       groupedByRoot,
       totalCount: trustUnits.length,
-      byRoot: Object.keys(groupedByRoot).length
+      byRoot: Object.keys(groupedByRoot).length,
     });
   } catch (error) {
     console.error('Error fetching trust units:', error);
-    return NextResponse.json({ error: 'Failed to fetch trust units' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch trust units' },
+      { status: 500 }
+    );
   }
 }

@@ -1,50 +1,49 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDb, getStorage } from "@/lib/firebaseAdmin";
-import { asyncHandler } from "@/lib/errorHandler";
-import { logger } from "@/lib/logger";
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb, getStorage } from '@/lib/firebaseAdmin';
+import { asyncHandler } from '@/lib/errorHandler';
+import { logger } from '@/lib/logger';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
-    
+
     if (!file) {
       return NextResponse.json(
-        { ok: false, error: "No file provided", code: "NO_FILE" },
+        { ok: false, error: 'No file provided', code: 'NO_FILE' },
         { status: 400 }
       );
     }
-    
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `logos/${new Date().toISOString().replace(/[:.]/g, '-')}-${file.name}`;
-    
+
     const storage = getStorage();
     const bucket = storage.bucket();
     const fileRef = bucket.file(fileName);
-    
+
     await fileRef.save(buffer, {
       metadata: {
         contentType: file.type,
       },
     });
-    
+
     const [url] = await fileRef.getSignedUrl({
       action: 'read',
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toISOString(), // 1 year
     });
-    
+
     return NextResponse.json({
       ok: true,
-      message: "Logo uploaded successfully",
+      message: 'Logo uploaded successfully',
       url: url,
-      fileName: fileName
+      fileName: fileName,
     });
-    
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: "Failed to upload logo", code: "SERVER_ERROR" },
+      { ok: false, error: 'Failed to upload logo', code: 'SERVER_ERROR' },
       { status: 500 }
     );
   }

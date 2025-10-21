@@ -22,44 +22,59 @@ export interface DatabaseCollections {
 export async function initializeDatabase(): Promise<boolean> {
   try {
     logger.info('Initializing database collections', 'DatabaseInit');
-    
+
     const db = getDb();
-    
+
     // Create collections with initial documents to establish structure
     const collections: DatabaseCollections = {
       users: 'users',
-      notFoundRegistry: 'notFoundRegistry', 
+      notFoundRegistry: 'notFoundRegistry',
       inviteHistory: 'inviteHistory',
       nfArchive: 'nfArchive',
       voiceUploads: 'voiceUploads',
       trustBonds: 'trustBonds',
-      trustUnits: 'trustUnits'
+      trustUnits: 'trustUnits',
     };
 
     // Initialize each collection with a placeholder document
-    for (const [collectionName, collectionPath] of Object.entries(collections)) {
+    for (const [collectionName, collectionPath] of Object.entries(
+      collections
+    )) {
       try {
         // Create collection by adding a document directly
         await db.collection(collectionPath).add({
           _initialized: true,
           createdAt: new Date(),
           type: 'placeholder',
-          message: `Collection ${collectionName} initialized`
+          message: `Collection ${collectionName} initialized`,
         });
-        
-        logger.info(`Initialized collection: ${collectionName}`, 'DatabaseInit');
+
+        logger.info(
+          `Initialized collection: ${collectionName}`,
+          'DatabaseInit'
+        );
       } catch (error) {
-        logger.error(`Failed to initialize collection ${collectionName}`, error as Error, 'DatabaseInit');
+        logger.error(
+          `Failed to initialize collection ${collectionName}`,
+          error as Error,
+          'DatabaseInit'
+        );
         // Continue with other collections even if one fails
         continue;
       }
     }
 
-    logger.info('Database initialization completed successfully', 'DatabaseInit');
+    logger.info(
+      'Database initialization completed successfully',
+      'DatabaseInit'
+    );
     return true;
-    
   } catch (error) {
-    logger.error('Database initialization failed', error as Error, 'DatabaseInit');
+    logger.error(
+      'Database initialization failed',
+      error as Error,
+      'DatabaseInit'
+    );
     return false;
   }
 }
@@ -70,9 +85,9 @@ export async function initializeDatabase(): Promise<boolean> {
 export async function createSampleData(): Promise<boolean> {
   try {
     logger.info('Creating sample data', 'DatabaseInit');
-    
+
     const db = getDb();
-    
+
     // Sample user data
     const sampleUser = {
       name: 'Test User',
@@ -81,7 +96,7 @@ export async function createSampleData(): Promise<boolean> {
       status: 'active',
       memberCode: 'TEST001',
       createdAt: new Date(),
-      lastLogin: new Date()
+      lastLogin: new Date(),
     };
 
     // Sample not found registry entry
@@ -91,7 +106,7 @@ export async function createSampleData(): Promise<boolean> {
       sponsorName: 'Admin',
       status: 'pending',
       createdAt: new Date(),
-      message: 'Sample invitation for testing'
+      message: 'Sample invitation for testing',
     };
 
     // Add sample data
@@ -99,14 +114,21 @@ export async function createSampleData(): Promise<boolean> {
       await db.collection('users').add(sampleUser);
       await db.collection('notFoundRegistry').add(sampleNotFound);
     } catch (error) {
-      logger.warn('Sample data creation failed, but continuing', 'DatabaseInit', { error: (error as Error).message });
+      logger.warn(
+        'Sample data creation failed, but continuing',
+        'DatabaseInit',
+        { error: (error as Error).message }
+      );
     }
-    
+
     logger.info('Sample data created successfully', 'DatabaseInit');
     return true;
-    
   } catch (error) {
-    logger.error('Failed to create sample data', error as Error, 'DatabaseInit');
+    logger.error(
+      'Failed to create sample data',
+      error as Error,
+      'DatabaseInit'
+    );
     return false;
   }
 }
@@ -123,24 +145,22 @@ export async function verifyDatabaseStructure(): Promise<{
     const db = getDb();
     const collections = [
       'users',
-      'notFoundRegistry', 
+      'notFoundRegistry',
       'inviteHistory',
       'nfArchive',
       'voiceUploads',
       'trustBonds',
-      'trustUnits'
+      'trustUnits',
     ];
 
     const results = await Promise.allSettled(
-      collections.map(collection => 
-        db.collection(collection).limit(1).get()
-      )
+      collections.map(collection => db.collection(collection).limit(1).get())
     );
 
     const existingCollections = results
-      .map((result, index) => ({ 
-        name: collections[index], 
-        exists: result.status === 'fulfilled' 
+      .map((result, index) => ({
+        name: collections[index],
+        exists: result.status === 'fulfilled',
       }))
       .filter(item => item.exists)
       .map(item => item.name);
@@ -149,28 +169,31 @@ export async function verifyDatabaseStructure(): Promise<{
       return {
         collections: existingCollections,
         status: 'healthy',
-        message: 'All collections exist and accessible'
+        message: 'All collections exist and accessible',
       };
     } else if (existingCollections.length === 0) {
       return {
         collections: [],
         status: 'needs_init',
-        message: 'Database needs initialization'
+        message: 'Database needs initialization',
       };
     } else {
       return {
         collections: existingCollections,
         status: 'needs_init',
-        message: `Missing collections: ${collections.filter(c => !existingCollections.includes(c)).join(', ')}`
+        message: `Missing collections: ${collections.filter(c => !existingCollections.includes(c)).join(', ')}`,
       };
     }
-    
   } catch (error) {
-    logger.error('Database verification failed', error as Error, 'DatabaseInit');
+    logger.error(
+      'Database verification failed',
+      error as Error,
+      'DatabaseInit'
+    );
     return {
       collections: [],
       status: 'error',
-      message: `Database verification failed: ${(error as Error).message}`
+      message: `Database verification failed: ${(error as Error).message}`,
     };
   }
 }
@@ -181,27 +204,30 @@ export async function verifyDatabaseStructure(): Promise<{
 export async function autoInitializeDatabase(): Promise<boolean> {
   try {
     const verification = await verifyDatabaseStructure();
-    
+
     if (verification.status === 'healthy') {
       logger.info('Database is already initialized', 'DatabaseInit');
       return true;
     }
-    
+
     if (verification.status === 'needs_init') {
-      logger.info('Database needs initialization', 'DatabaseInit', { 
-        message: verification.message 
+      logger.info('Database needs initialization', 'DatabaseInit', {
+        message: verification.message,
       });
-      
+
       const initResult = await initializeDatabase();
       if (initResult) {
         logger.info('Database auto-initialization completed', 'DatabaseInit');
         return true;
       }
     }
-    
-    logger.error('Database auto-initialization failed', undefined, 'DatabaseInit');
+
+    logger.error(
+      'Database auto-initialization failed',
+      undefined,
+      'DatabaseInit'
+    );
     return false;
-    
   } catch (error) {
     logger.error('Auto-initialization failed', error as Error, 'DatabaseInit');
     return false;

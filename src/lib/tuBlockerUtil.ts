@@ -1,8 +1,8 @@
 /**
  * Trust Unit Blocker Utility
- * 
+ *
  * Prevents duplicate invites to members already in the same TU
- * 
+ *
  * Business Rules:
  * - Block invites to members who share the same rootSponsorId and are already in a TU together
  * - Allow invites across different roots
@@ -20,7 +20,7 @@ export interface BlockerResult {
 
 /**
  * Check if an invite should be blocked due to existing TU membership
- * 
+ *
  * @param inviterCode - The member sending the invite
  * @param inviteeName - The name of the person being invited (not yet registered)
  * @param inviteePhone - The phone number of the person being invited
@@ -31,7 +31,9 @@ export async function checkInviteBlock(
   inviteeName: string,
   inviteePhone: string
 ): Promise<BlockerResult> {
-  console.log(`\n🚫 [TU-BLOCKER] Checking invite: ${inviterCode} → ${inviteeName}`);
+  console.log(
+    `\n🚫 [TU-BLOCKER] Checking invite: ${inviterCode} → ${inviteeName}`
+  );
 
   const db = getDb();
 
@@ -54,7 +56,9 @@ export async function checkInviteBlock(
     // Check if invitee is already registered
     const inviteeDoc = await db.collection('users').doc(inviteePhone).get();
     if (!inviteeDoc.exists) {
-      console.log('ℹ️  [TU-BLOCKER] Invitee not yet registered, allowing invite');
+      console.log(
+        'ℹ️  [TU-BLOCKER] Invitee not yet registered, allowing invite'
+      );
       return { shouldBlock: false, reason: 'Invitee not registered' };
     }
 
@@ -69,9 +73,12 @@ export async function checkInviteBlock(
     }
 
     // Same root - check if they're already in a TU together
-    console.log(`🔍 [TU-BLOCKER] Same root (${inviterRoot}), checking TU membership`);
+    console.log(
+      `🔍 [TU-BLOCKER] Same root (${inviterRoot}), checking TU membership`
+    );
 
-    const tuQuery = await db.collection('trustUnits')
+    const tuQuery = await db
+      .collection('trustUnits')
       .where('rootSponsorId', '==', inviterRoot)
       .get();
 
@@ -79,20 +86,24 @@ export async function checkInviteBlock(
       const tuData = tuDoc.data();
       const memberCodes = tuData.memberCodes || [];
 
-      if (memberCodes.includes(inviterCode) && memberCodes.includes(inviteeCode)) {
-        console.log(`⚠️  [TU-BLOCKER] Already in TU ${tuDoc.id} together - BLOCKING`);
+      if (
+        memberCodes.includes(inviterCode) &&
+        memberCodes.includes(inviteeCode)
+      ) {
+        console.log(
+          `⚠️  [TU-BLOCKER] Already in TU ${tuDoc.id} together - BLOCKING`
+        );
         return {
           shouldBlock: true,
           reason: `${inviteeName} is already in your Trust Unit`,
           existingTUId: tuDoc.id,
-          rootSponsorId: inviterRoot
+          rootSponsorId: inviterRoot,
         };
       }
     }
 
     console.log('✅ [TU-BLOCKER] Not in same TU, allowing invite');
     return { shouldBlock: false, reason: 'Not in same TU' };
-
   } catch (error: any) {
     console.error('❌ [TU-BLOCKER] Error:', error);
     // On error, don't block (fail open)
@@ -119,29 +130,20 @@ export async function detectCircularInvite(
     }
 
     const inviterData = inviterDoc.data();
-    const inviterSponsor = inviterData?.sponsorMemberCode || inviterData?.sponsorId;
+    const inviterSponsor =
+      inviterData?.sponsorMemberCode || inviterData?.sponsorId;
 
     if (inviterSponsor === inviteeCode) {
-      console.log('⚠️  [CIRCULAR-CHECK] Inviting own sponsor - ALLOWED but logged');
+      console.log(
+        '⚠️  [CIRCULAR-CHECK] Inviting own sponsor - ALLOWED but logged'
+      );
       return { isCircular: true, reason: 'Inviting own sponsor' };
     }
 
     console.log('✅ [CIRCULAR-CHECK] Not circular');
     return { isCircular: false, reason: 'Not circular' };
-
   } catch (error: any) {
     console.error('❌ [CIRCULAR-CHECK] Error:', error);
     return { isCircular: false, reason: `Error: ${error.message}` };
   }
 }
-
-
-
-
-
-
-
-
-
-
-

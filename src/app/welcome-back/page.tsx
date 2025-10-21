@@ -1,5 +1,5 @@
-﻿"use client";
-import { useState, useEffect, Suspense } from "react";
+﻿'use client';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 function WelcomeBackContent() {
@@ -7,7 +7,7 @@ function WelcomeBackContent() {
   const name = searchParams.get('name');
   const userStatus = searchParams.get('status');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     // Auto-redirect after 3 seconds
@@ -38,25 +38,25 @@ function WelcomeBackContent() {
         return {
           title: 'Welcome Back!',
           message: `Hello ${name}! You're already a registered member. Redirecting to your dashboard...`,
-          buttonText: 'Go to Dashboard'
+          buttonText: 'Go to Dashboard',
         };
       case 'pending':
         return {
           title: 'Complete Your Registration',
           message: `Hello ${name}! You have a pending registration. Let's complete it now.`,
-          buttonText: 'Complete Registration'
+          buttonText: 'Complete Registration',
         };
       case 'temp':
         return {
           title: 'Welcome Back!',
           message: `Hello ${name}! You're set up as a temporary member. Checking for invitations...`,
-          buttonText: 'Check Status'
+          buttonText: 'Check Status',
         };
       default:
         return {
           title: 'Welcome Back!',
           message: `Hello ${name}! Welcome back to the family.`,
-          buttonText: 'Continue'
+          buttonText: 'Continue',
         };
     }
   };
@@ -64,25 +64,16 @@ function WelcomeBackContent() {
   const statusInfo = getStatusMessage();
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
-        <div className="text-green-500 text-6xl mb-4">✅</div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">
+    <div className='min-h-screen bg-gray-100 flex items-center justify-center'>
+      <div className='bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center'>
+        <div className='text-green-500 text-6xl mb-4'>✅</div>
+        <h1 className='text-2xl font-bold text-gray-800 mb-4'>
           {statusInfo.title}
         </h1>
-        <p className="text-gray-600 mb-6">
-          {statusInfo.message}
-        </p>
-        
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="font-semibold text-blue-800 mb-2">You're in our system!</h3>
-          <p className="text-sm text-blue-700">
-            We found your profile and are setting up your experience.
-          </p>
-        </div>
+        <p className='text-gray-600 mb-6'>{statusInfo.message}</p>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className='mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded'>
             {error}
           </div>
         )}
@@ -90,12 +81,12 @@ function WelcomeBackContent() {
         <button
           onClick={handleContinue}
           disabled={isLoading}
-          className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className='w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed'
         >
           {isLoading ? 'Loading...' : statusInfo.buttonText}
         </button>
 
-        <p className="text-xs text-gray-500 text-center mt-4">
+        <p className='text-xs text-gray-500 text-center mt-4'>
           Auto-redirecting in 3 seconds...
         </p>
       </div>
@@ -110,9 +101,3 @@ export default function WelcomeBackPage() {
     </Suspense>
   );
 }
-
-
-
-
-
-

@@ -18,50 +18,58 @@ jest.mock('@/lib/firebaseAdmin', () => ({
   getDb: jest.fn(() => ({
     collection: jest.fn(() => ({
       doc: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({
-          exists: true,
-          data: () => ({ id: 'test', name: 'Test User' })
-        })),
+        get: jest.fn(() =>
+          Promise.resolve({
+            exists: true,
+            data: () => ({ id: 'test', name: 'Test User' }),
+          })
+        ),
         set: jest.fn(() => Promise.resolve()),
         update: jest.fn(() => Promise.resolve()),
-        delete: jest.fn(() => Promise.resolve())
+        delete: jest.fn(() => Promise.resolve()),
       })),
       add: jest.fn(() => Promise.resolve({ id: 'test-id' })),
       where: jest.fn(() => ({
-        get: jest.fn(() => Promise.resolve({
-          empty: false,
-          docs: [{
-            id: 'test-id',
-            data: () => ({ id: 'test', name: 'Test User' })
-          }]
-        }))
-      }))
-    }))
-  }))
+        get: jest.fn(() =>
+          Promise.resolve({
+            empty: false,
+            docs: [
+              {
+                id: 'test-id',
+                data: () => ({ id: 'test', name: 'Test User' }),
+              },
+            ],
+          })
+        ),
+      })),
+    })),
+  })),
 }));
 
 // Mock AWS SDK
 jest.mock('@aws-sdk/client-transcribe', () => ({
   TranscribeClient: jest.fn(() => ({
-    send: jest.fn(() => Promise.resolve({
-      TranscriptionJob: {
-        TranscriptionJobStatus: 'COMPLETED',
-        Transcript: {
-          TranscriptFileUri: 's3://test-bucket/transcript.json'
-        }
-      }
-    }))
+    send: jest.fn(() =>
+      Promise.resolve({
+        TranscriptionJob: {
+          TranscriptionJobStatus: 'COMPLETED',
+          Transcript: {
+            TranscriptFileUri: 's3://test-bucket/transcript.json',
+          },
+        },
+      })
+    ),
   })),
   StartTranscriptionJobCommand: jest.fn(),
-  GetTranscriptionJobCommand: jest.fn()
+  GetTranscriptionJobCommand: jest.fn(),
 }));
 
 jest.mock('@aws-sdk/client-s3', () => ({
   S3Client: jest.fn(() => ({
-    send: jest.fn(() => Promise.resolve())
+    send: jest.fn(() => Promise.resolve()),
   })),
   PutObjectCommand: jest.fn(),
-  GetObjectCommand: jest.fn()
+  GetObjectCommand: jest.fn(),
 }));
 
 // Mock Next.js
@@ -70,9 +78,9 @@ jest.mock('next/server', () => ({
   NextResponse: {
     json: jest.fn((data, options) => ({
       json: () => Promise.resolve(data),
-      status: options?.status || 200
-    }))
-  }
+      status: options?.status || 200,
+    })),
+  },
 }));
 
 // Global test utilities
@@ -80,10 +88,10 @@ jest.mock('next/server', () => ({
   createMockRequest: (body = {}, headers = {}) => ({
     json: () => Promise.resolve(body),
     headers: {
-      get: (name: any) => (headers as any)[name] || null
-    }
+      get: (name: any) => (headers as any)[name] || null,
+    },
   }),
-  
+
   createMockUser: (overrides = {}) => ({
     id: 'test-user-id',
     name: 'Test User',
@@ -91,14 +99,14 @@ jest.mock('next/server', () => ({
     phone: '+1234567890',
     status: 'active',
     createdAt: new Date().toISOString(),
-    ...overrides
+    ...overrides,
   }),
-  
+
   createMockApiResponse: (data: any, status = 200) => ({
     ok: status >= 200 && status < 300,
     data,
-    status
-  })
+    status,
+  }),
 };
 
 // Console suppression for tests
@@ -108,14 +116,5 @@ global.console = {
   log: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
-  info: jest.fn()
+  info: jest.fn(),
 };
-
-
-
-
-
-
-
-
-

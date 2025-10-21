@@ -13,7 +13,7 @@
  */
 export const capitalizeName = (name: string | null | undefined): string => {
   if (!name || typeof name !== 'string') return '';
-  
+
   return name
     .toLowerCase()
     .split(' ')
@@ -27,7 +27,9 @@ export const capitalizeName = (name: string | null | undefined): string => {
 /**
  * Formats a member code for display (adds formatting if needed)
  */
-export const formatMemberCode = (memberCode: string | null | undefined): string => {
+export const formatMemberCode = (
+  memberCode: string | null | undefined
+): string => {
   if (!memberCode) return '';
   return memberCode.toString();
 };
@@ -39,11 +41,3 @@ export const truncateText = (text: string, maxLength: number): string => {
   if (!text || text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
-
-
-
-
-
-
-
-

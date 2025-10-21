@@ -11,42 +11,55 @@ export async function POST(
     const { userId, reaction } = body;
 
     if (!userId || !reaction) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'User ID and reaction are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'User ID and reaction are required',
+        },
+        { status: 400 }
+      );
     }
 
     // Verify user has access to this vault
     const db = getDb();
     const vaultDoc = await db.collection('vaults').doc(vaultId).get();
     if (!vaultDoc.exists) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Vault not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Vault not found',
+        },
+        { status: 404 }
+      );
     }
 
     const vaultData = vaultDoc.data();
     if (!vaultData?.participants?.includes(userId)) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Access denied' 
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Access denied',
+        },
+        { status: 403 }
+      );
     }
 
     // Get the message
-    const messageRef = db.collection('vaults')
+    const messageRef = db
+      .collection('vaults')
       .doc(vaultId)
       .collection('messages')
       .doc(messageId);
 
     const messageDoc = await messageRef.get();
     if (!messageDoc.exists) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Message not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Message not found',
+        },
+        { status: 404 }
+      );
     }
 
     const messageData = messageDoc.data();
@@ -61,20 +74,22 @@ export async function POST(
 
     // Update the message
     await messageRef.update({
-      reactions: currentReactions
+      reactions: currentReactions,
     });
 
     return NextResponse.json({
       ok: true,
       reactions: currentReactions,
-      message: 'Reaction updated successfully'
+      message: 'Reaction updated successfully',
     });
-
   } catch (error) {
     console.error('Error updating reaction:', error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: 'Failed to update reaction' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Failed to update reaction',
+      },
+      { status: 500 }
+    );
   }
 }

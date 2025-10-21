@@ -1,23 +1,26 @@
-import { NextResponse } from "next/server";
-import { awsTranscribeVoiceAuth } from "@/lib/awsTranscribe";
-import { getDb } from "@/lib/firebaseAdmin";
+import { NextResponse } from 'next/server';
+import { awsTranscribeVoiceAuth } from '@/lib/awsTranscribe';
+import { getDb } from '@/lib/firebaseAdmin';
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
     const { memberCode, audioBuffer, phoneDigits } = await req.json();
-    
+
     if (!memberCode || !audioBuffer) {
-      return NextResponse.json({ error: "missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'missing required fields' },
+        { status: 400 }
+      );
     }
 
     // Get user data
     const db = getDb();
     const userDoc = await db.collection('users').doc(memberCode).get();
     if (!userDoc.exists) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const userData = userDoc.data();
@@ -41,33 +44,39 @@ export async function POST(req: Request) {
       verificationResult,
       expectedPhone,
       providedPhone: phoneDigits,
-      ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
+      ipAddress:
+        req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
       userAgent: req.headers.get('user-agent'),
     });
 
     // Update user's verification status
     if (verificationResult.isVerified) {
-      await db.collection('users').doc(memberCode).update({
-        lastVerified: new Date().toISOString(),
-        verificationCount: (userData?.verificationCount || 0) + 1,
-        securityLevel: verificationResult.securityLevel,
-        updatedAt: new Date().toISOString(),
-      });
+      await db
+        .collection('users')
+        .doc(memberCode)
+        .update({
+          lastVerified: new Date().toISOString(),
+          verificationCount: (userData?.verificationCount || 0) + 1,
+          securityLevel: verificationResult.securityLevel,
+          updatedAt: new Date().toISOString(),
+        });
     }
 
     return NextResponse.json({
       ok: true,
       memberCode,
       verificationResult,
-      message: verificationResult.isVerified 
-        ? "Voice verification successful" 
-        : "Voice verification failed"
+      message: verificationResult.isVerified
+        ? 'Voice verification successful'
+        : 'Voice verification failed',
     });
-
   } catch (error: any) {
-    return NextResponse.json({
-      error: "Failed to verify voice",
-      details: error.message
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to verify voice',
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

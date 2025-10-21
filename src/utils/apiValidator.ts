@@ -17,11 +17,11 @@ export async function safeApiCall<T = any>(
   try {
     const response = await fetch(url, {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
-        ...options?.headers
+        ...options?.headers,
       },
-      ...options
+      ...options,
     });
 
     // Check if response is OK
@@ -30,7 +30,7 @@ export async function safeApiCall<T = any>(
       return {
         ok: false,
         error: `HTTP ${response.status}: ${errorText}`,
-        status: response.status
+        status: response.status,
       };
     }
 
@@ -41,7 +41,7 @@ export async function safeApiCall<T = any>(
       return {
         ok: false,
         error: `Expected JSON but got ${contentType || 'unknown'}: ${body.substring(0, 100)}`,
-        status: response.status
+        status: response.status,
       };
     }
 
@@ -50,14 +50,13 @@ export async function safeApiCall<T = any>(
     return {
       ok: true,
       data,
-      status: response.status
+      status: response.status,
     };
-
   } catch (error) {
     return {
       ok: false,
       error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      status: 0
+      status: 0,
     };
   }
 }
@@ -74,7 +73,7 @@ export const API_ENDPOINTS = {
   'user.complete-registration': '/api/user/complete-registration',
   'user.upload-picture': '/api/user/upload-picture',
   'user.capture-phone': '/api/user/capture-phone',
-  
+
   // Admin APIs
   'admin.stats': '/api/admin/stats',
   'admin.members': '/api/admin/members',
@@ -82,12 +81,12 @@ export const API_ENDPOINTS = {
   'admin.not-found-registry': '/api/admin/not-found-registry',
   'admin.nf-archive': '/api/admin/nf-archive',
   'admin.archive-not-found': '/api/admin/archive-not-found',
-  
+
   // Trust Units APIs
   'trust-units.list': '/api/trust/units/list',
   'trust-units.connect': '/api/trust/units/connect',
   'trust-units.wait': '/api/trust/units/wait',
-  
+
   // Member APIs
   'member.send-invitation': '/api/member/send-invitation',
   'member.invite-history': '/api/member/invite-history',
@@ -111,7 +110,3 @@ export function getApiUrl(endpoint: ApiEndpoint): string {
   }
   return API_ENDPOINTS[endpoint];
 }
-
-
-
-

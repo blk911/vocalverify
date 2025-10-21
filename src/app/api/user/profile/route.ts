@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/firebaseAdmin";
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/lib/firebaseAdmin';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const memberCode = searchParams.get('memberCode');
-    
+
     if (!memberCode) {
       return NextResponse.json(
-        { ok: false, error: "Missing memberCode" },
+        { ok: false, error: 'Missing memberCode' },
         { status: 400 }
       );
     }
@@ -18,10 +18,10 @@ export async function GET(req: NextRequest) {
     // Get user profile from Firestore
     const db = getDb();
     const userDoc = await db.collection('users').doc(memberCode).get();
-    
+
     if (!userDoc.exists) {
       return NextResponse.json(
-        { ok: false, error: "User not found" },
+        { ok: false, error: 'User not found' },
         { status: 404 }
       );
     }
@@ -50,15 +50,14 @@ export async function GET(req: NextRequest) {
         profileSteps: {
           primaryVoice: userData?.profileSteps?.primaryVoice || false,
           profileConfirm: userData?.profileSteps?.profileConfirm || false,
-          phoneVoice: userData?.profileSteps?.phoneVoice || false
+          phoneVoice: userData?.profileSteps?.phoneVoice || false,
         },
-        currentStep: userData?.currentStep || 1
-      }
+        currentStep: userData?.currentStep || 1,
+      },
     });
-
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: "Failed to fetch profile" },
+      { ok: false, error: 'Failed to fetch profile' },
       { status: 500 }
     );
   }
@@ -66,19 +65,28 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const { memberCode, voiceUrl, hasVoice, fullName, phone, email, profilePicture, profileSteps, currentStep } = await req.json();
-    
+    const {
+      memberCode,
+      voiceUrl,
+      hasVoice,
+      fullName,
+      phone,
+      email,
+      profilePicture,
+      profileSteps,
+      currentStep,
+    } = await req.json();
+
     if (!memberCode) {
       return NextResponse.json(
-        { ok: false, error: "Missing memberCode" },
+        { ok: false, error: 'Missing memberCode' },
         { status: 400 }
       );
     }
 
-
     // Update user profile in Firestore
     const updateData: any = {
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     if (voiceUrl !== undefined) updateData.voiceUrl = voiceUrl;
@@ -86,28 +94,27 @@ export async function PUT(req: NextRequest) {
     if (fullName !== undefined) updateData.fullName = fullName;
     if (phone !== undefined) updateData.phone = phone;
     if (email !== undefined) updateData.email = email;
-    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+    if (profilePicture !== undefined)
+      updateData.profilePicture = profilePicture;
     if (profileSteps !== undefined) updateData.profileSteps = profileSteps;
     if (currentStep !== undefined) updateData.currentStep = currentStep;
 
     const db = getDb();
     await db.collection('users').doc(memberCode).update(updateData);
 
-
     return NextResponse.json({
       ok: true,
-      message: "Profile updated successfully",
+      message: 'Profile updated successfully',
       profile: {
         memberCode,
         voiceUrl,
         hasVoice,
-        profilePicture
-      }
+        profilePicture,
+      },
     });
-
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: "Failed to update profile" },
+      { ok: false, error: 'Failed to update profile' },
       { status: 500 }
     );
   }

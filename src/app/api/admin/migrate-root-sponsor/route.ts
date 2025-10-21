@@ -1,6 +1,6 @@
 /**
  * Admin API: Run rootSponsorId + depth migration
- * 
+ *
  * Query params:
  * - dryRun=true (default) → just simulate, don't write
  * - dryRun=false → actually update database
@@ -23,9 +23,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       dryRun,
-      ...result
+      ...result,
     });
-
   } catch (error: any) {
     console.error('❌ [ADMIN] Migration failed:', error);
     return NextResponse.json(
@@ -34,14 +33,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
-

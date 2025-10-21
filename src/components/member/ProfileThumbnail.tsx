@@ -1,4 +1,4 @@
-﻿"use client";
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { capitalizeName } from '@/utils/stringUtils';
 
@@ -10,12 +10,12 @@ interface ProfileThumbnailProps {
   profilePicture?: string; // Direct profile picture prop
 }
 
-export default function ProfileThumbnail({ 
-  memberCode, 
-  memberName, 
-  size = 'md', 
+export default function ProfileThumbnail({
+  memberCode,
+  memberName,
+  size = 'md',
   showName = false,
-  profilePicture: directProfilePicture
+  profilePicture: directProfilePicture,
 }: ProfileThumbnailProps) {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,9 +33,11 @@ export default function ProfileThumbnail({
 
   const loadProfilePicture = async () => {
     try {
-      const response = await fetch(`/api/user/profile-picture?memberCode=${memberCode}`);
+      const response = await fetch(
+        `/api/user/profile-picture?memberCode=${memberCode}`
+      );
       const data = await response.json();
-      
+
       if (data.ok && data.profilePicture) {
         setProfilePicture(data.profilePicture);
       }
@@ -71,36 +73,38 @@ export default function ProfileThumbnail({
 
   if (isLoading) {
     return (
-      <div className={`${getSizeClasses()} rounded-full bg-gray-200 animate-pulse flex items-center justify-center`}>
-        <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
+      <div
+        className={`${getSizeClasses()} rounded-full bg-gray-200 animate-pulse flex items-center justify-center`}
+      >
+        <div className='w-4 h-4 bg-gray-300 rounded-full'></div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center space-x-2">
-      <div className={`${getSizeClasses()} rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center`}>
+    <div className='flex items-center space-x-2'>
+      <div
+        className={`${getSizeClasses()} rounded-full overflow-hidden border-2 border-gray-200 flex items-center justify-center`}
+      >
         {profilePicture ? (
           <img
             src={profilePicture}
             alt={`${memberName} profile`}
-            className="w-full h-full object-cover"
+            className='w-full h-full object-cover'
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white font-semibold text-sm">{getInitials()}</span>
+          <div className='w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center'>
+            <span className='text-white font-semibold text-sm'>
+              {getInitials()}
+            </span>
           </div>
         )}
       </div>
       {showName && (
-        <span className="text-sm font-medium text-gray-700">
+        <span className='text-sm font-medium text-gray-700'>
           {capitalizeName(memberName)}
         </span>
       )}
     </div>
   );
 }
-
-
-
-

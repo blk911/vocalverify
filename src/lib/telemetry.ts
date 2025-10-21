@@ -1,8 +1,8 @@
 /**
  * Telemetry Utility
- * 
+ *
  * Centralized logging for key business events
- * 
+ *
  * Usage:
  * - Log important events for monitoring and analytics
  * - Can be extended to send to external services (Datadog, Sentry, etc.)
@@ -17,11 +17,14 @@ export interface TelemetryEvent {
 /**
  * Log a telemetry event
  */
-export function logTelemetry(eventName: string, data: Record<string, any> = {}): void {
+export function logTelemetry(
+  eventName: string,
+  data: Record<string, any> = {}
+): void {
   const event: TelemetryEvent = {
     eventName,
     timestamp: new Date().toISOString(),
-    data
+    data,
   };
 
   // Console logging (can be extended to external services)
@@ -52,7 +55,7 @@ export function logTUCreation(
     rootSponsorId,
     memberCount,
     memberCodes,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   });
 }
 
@@ -61,7 +64,11 @@ export function logTUCreation(
  */
 export function logTUUpdate(
   unitId: string,
-  action: 'member_added' | 'status_changed' | 'member_connected' | 'member_waiting',
+  action:
+    | 'member_added'
+    | 'status_changed'
+    | 'member_connected'
+    | 'member_waiting',
   memberCode: string,
   newStatus?: string
 ): void {
@@ -70,7 +77,7 @@ export function logTUUpdate(
     action,
     memberCode,
     newStatus,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   });
 }
 
@@ -88,7 +95,7 @@ export function logInviteBlocked(
     inviteeName,
     reason,
     existingTUId,
-    blockedAt: new Date().toISOString()
+    blockedAt: new Date().toISOString(),
   });
 }
 
@@ -106,7 +113,7 @@ export function logTriangleCloseDetected(
     inviteeCode,
     rootSponsorId,
     result,
-    detectedAt: new Date().toISOString()
+    detectedAt: new Date().toISOString(),
   });
 }
 
@@ -122,17 +129,6 @@ export function logCircularInvite(
     inviterCode,
     inviteeCode,
     allowed,
-    detectedAt: new Date().toISOString()
+    detectedAt: new Date().toISOString(),
   });
 }
-
-
-
-
-
-
-
-
-
-
-

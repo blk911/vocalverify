@@ -8,36 +8,40 @@ export async function POST(
   try {
     const { vaultId } = await params;
     const body = await request.json();
-    const { 
-      senderId, 
-      content, 
-      messageType = 'text',
-      mediaUrl = null 
-    } = body;
+    const { senderId, content, messageType = 'text', mediaUrl = null } = body;
 
     if (!senderId || !content) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Sender ID and content are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Sender ID and content are required',
+        },
+        { status: 400 }
+      );
     }
 
     // Verify user has access to this vault
     const db = getDb();
     const vaultDoc = await db.collection('vaults').doc(vaultId).get();
     if (!vaultDoc.exists) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Vault not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Vault not found',
+        },
+        { status: 404 }
+      );
     }
 
     const vaultData = vaultDoc.data();
     if (!vaultData?.participants?.includes(senderId)) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Access denied' 
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Access denied',
+        },
+        { status: 403 }
+      );
     }
 
     // Create message
@@ -48,20 +52,24 @@ export async function POST(
       mediaUrl,
       reactions: {},
       createdAt: new Date(),
-      vaultId
+      vaultId,
     };
 
     // Add message to vault's messages subcollection
-    const messageRef = await db.collection('vaults')
+    const messageRef = await db
+      .collection('vaults')
       .doc(vaultId)
       .collection('messages')
       .add(messageData);
 
     // Update vault's lastActivity and messageCount
-    await db.collection('vaults').doc(vaultId).update({
-      lastActivity: new Date(),
-      messageCount: (vaultData.messageCount || 0) + 1
-    });
+    await db
+      .collection('vaults')
+      .doc(vaultId)
+      .update({
+        lastActivity: new Date(),
+        messageCount: (vaultData.messageCount || 0) + 1,
+      });
 
     // Get sender details for response
     let senderDetails = null;
@@ -72,7 +80,7 @@ export async function POST(
         senderDetails = {
           memberCode: senderId,
           name: senderData?.name || senderData?.displayName || 'Unknown',
-          profilePicture: senderData?.profilePicture || null
+          profilePicture: senderData?.profilePicture || null,
         };
       }
     } catch (error) {
@@ -90,16 +98,18 @@ export async function POST(
         mediaUrl,
         reactions: {},
         createdAt: messageData.createdAt,
-        vaultId
+        vaultId,
       },
-      messageId: messageRef.id
+      messageId: messageRef.id,
     });
-
   } catch (error) {
     console.error('Error sending message:', error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: 'Failed to send message' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Failed to send message',
+      },
+      { status: 500 }
+    );
   }
 }

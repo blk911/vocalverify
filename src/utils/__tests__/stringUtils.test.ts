@@ -21,19 +21,11 @@ describe('capitalizeName', () => {
 
   test('should handle special characters', () => {
     expect(capitalizeName('john-doe')).toBe('John-doe');
-    expect(capitalizeName('mc\'donald')).toBe('Mc\'donald');
-    expect(capitalizeName('o\'connor')).toBe('O\'connor');
+    expect(capitalizeName("mc'donald")).toBe("Mc'donald");
+    expect(capitalizeName("o'connor")).toBe("O'connor");
   });
 
   test('should handle multiple spaces', () => {
     expect(capitalizeName('  spencer  wendt  ')).toBe('  Spencer  Wendt  ');
   });
 });
-
-
-
-
-
-
-
-

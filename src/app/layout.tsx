@@ -1,19 +1,26 @@
 ﻿import './globals.css';
 
-export const metadata = { title: "Simple Next", description: "Minimal starter" };
+export const metadata = {
+  title: 'Simple Next',
+  description: 'Minimal starter',
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang='en'>
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name='viewport' content='width=device-width, initial-scale=1' />
       </head>
-      <body className="font-sans m-0 bg-gray-100" suppressHydrationWarning={true}>
+      <body
+        className='font-sans m-0 bg-gray-100'
+        suppressHydrationWarning={true}
+      >
         {children}
       </body>
     </html>
   );
 }
-
-
-

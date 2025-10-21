@@ -7,7 +7,7 @@ export enum LogLevel {
   DEBUG = 'debug',
   INFO = 'info',
   WARN = 'warn',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 export interface LogEntry {
@@ -51,7 +51,12 @@ class Logger {
    * Check if log level should be logged
    */
   private shouldLog(level: LogLevel): boolean {
-    const levels = [LogLevel.DEBUG, LogLevel.INFO, LogLevel.WARN, LogLevel.ERROR];
+    const levels = [
+      LogLevel.DEBUG,
+      LogLevel.INFO,
+      LogLevel.WARN,
+      LogLevel.ERROR,
+    ];
     const currentIndex = levels.indexOf(this.logLevel);
     const messageIndex = levels.indexOf(level);
     return messageIndex >= currentIndex;
@@ -62,26 +67,26 @@ class Logger {
    */
   private formatLogEntry(entry: LogEntry): string {
     const { timestamp, level, message, context, data, error } = entry;
-    
+
     let formatted = `[${timestamp}] [${level.toUpperCase()}]`;
-    
+
     if (context) {
       formatted += ` [${context}]`;
     }
-    
+
     formatted += ` ${message}`;
-    
+
     if (data) {
       formatted += `\nData: ${JSON.stringify(data, null, 2)}`;
     }
-    
+
     if (error) {
       formatted += `\nError: ${error.message}`;
       if (error.stack) {
         formatted += `\nStack: ${error.stack}`;
       }
     }
-    
+
     return formatted;
   }
 
@@ -101,7 +106,7 @@ class Logger {
       message,
       context,
       data,
-      error
+      error,
     };
   }
 
@@ -159,7 +164,13 @@ class Logger {
    * Error level logging
    */
   error(message: string, error?: Error, context?: string, data?: any): void {
-    const entry = this.createLogEntry(LogLevel.ERROR, message, context, data, error);
+    const entry = this.createLogEntry(
+      LogLevel.ERROR,
+      message,
+      context,
+      data,
+      error
+    );
     this.writeLog(entry);
   }
 
@@ -214,41 +225,32 @@ export const logger = new Logger();
 
 // Export convenience functions
 export const log = {
-  debug: (message: string, context?: string, data?: any) => 
+  debug: (message: string, context?: string, data?: any) =>
     logger.debug(message, context, data),
-  
-  info: (message: string, context?: string, data?: any) => 
+
+  info: (message: string, context?: string, data?: any) =>
     logger.info(message, context, data),
-  
-  warn: (message: string, context?: string, data?: any) => 
+
+  warn: (message: string, context?: string, data?: any) =>
     logger.warn(message, context, data),
-  
-  error: (message: string, error?: Error, context?: string, data?: any) => 
+
+  error: (message: string, error?: Error, context?: string, data?: any) =>
     logger.error(message, error, context, data),
-  
+
   api: {
-    request: (method: string, path: string, data?: any) => 
+    request: (method: string, path: string, data?: any) =>
       logger.apiRequest(method, path, data),
-    
-    response: (method: string, path: string, status: number, data?: any) => 
-      logger.apiResponse(method, path, status, data)
+
+    response: (method: string, path: string, status: number, data?: any) =>
+      logger.apiResponse(method, path, status, data),
   },
-  
-  db: (operation: string, collection: string, data?: any) => 
+
+  db: (operation: string, collection: string, data?: any) =>
     logger.dbOperation(operation, collection, data),
-  
-  auth: (event: string, userId?: string, data?: any) => 
+
+  auth: (event: string, userId?: string, data?: any) =>
     logger.authEvent(event, userId, data),
-  
-  voice: (memberCode: string, success: boolean, data?: any) => 
-    logger.voiceAuth(memberCode, success, data)
+
+  voice: (memberCode: string, success: boolean, data?: any) =>
+    logger.voiceAuth(memberCode, success, data),
 };
-
-
-
-
-
-
-
-
-

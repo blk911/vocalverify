@@ -4,43 +4,48 @@ import { getDb } from '@/lib/firebaseAdmin';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      creatorId, 
-      participantId, 
-      vaultType = 'chat', 
-      tuId = null 
-    } = body;
+    const { creatorId, participantId, vaultType = 'chat', tuId = null } = body;
 
     if (!creatorId || !participantId) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Creator ID and participant ID are required' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Creator ID and participant ID are required',
+        },
+        { status: 400 }
+      );
     }
 
     // Validate that creator and participant exist
     const db = getDb();
     const [creatorDoc, participantDoc] = await Promise.all([
       db.collection('users').doc(creatorId).get(),
-      db.collection('users').doc(participantId).get()
+      db.collection('users').doc(participantId).get(),
     ]);
 
     if (!creatorDoc.exists) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Creator not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Creator not found',
+        },
+        { status: 404 }
+      );
     }
 
     if (!participantDoc.exists) {
-      return NextResponse.json({ 
-        ok: false, 
-        error: 'Participant not found' 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Participant not found',
+        },
+        { status: 404 }
+      );
     }
 
     // Check if vault already exists between these participants
-    const existingVaultSnapshot = await db.collection('vaults')
+    const existingVaultSnapshot = await db
+      .collection('vaults')
       .where('participants', 'array-contains', creatorId)
       .where('type', '==', tuId ? 'tu' : 'personal')
       .get();
@@ -53,19 +58,19 @@ export async function POST(request: NextRequest) {
           ok: true,
           vaultId: doc.id,
           message: 'Vault already exists',
-          existing: true
+          existing: true,
         });
       }
     }
 
     // Create new vault
-    const participants = tuId ? 
-      // For TU vaults, get all TU members
-      await getTUMembers(tuId) : 
-      [creatorId, participantId];
-    
+    const participants = tuId
+      ? // For TU vaults, get all TU members
+        await getTUMembers(tuId)
+      : [creatorId, participantId];
+
     console.log('🏗️ Creating vault with participants:', participants);
-    
+
     const vaultData = {
       type: tuId ? 'tu' : 'personal',
       creatorId,
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
       status: 'active',
       createdAt: new Date(),
       lastActivity: new Date(),
-      messageCount: 0
+      messageCount: 0,
     };
 
     const vaultRef = await db.collection('vaults').add(vaultData);
@@ -85,17 +90,19 @@ export async function POST(request: NextRequest) {
       vaultId: vaultRef.id,
       vault: {
         id: vaultRef.id,
-        ...vaultData
+        ...vaultData,
       },
-      message: 'Vault created successfully'
+      message: 'Vault created successfully',
     });
-
   } catch (error) {
     console.error('Error creating vault:', error);
-    return NextResponse.json({ 
-      ok: false, 
-      error: 'Failed to create vault' 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: 'Failed to create vault',
+      },
+      { status: 500 }
+    );
   }
 }
 

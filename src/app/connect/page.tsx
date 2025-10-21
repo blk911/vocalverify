@@ -1,18 +1,24 @@
-﻿"use client";
-import { useState, useEffect } from "react";
+﻿'use client';
+import { useState, useEffect } from 'react';
 import { deviceFingerprint } from '@/lib/deviceFingerprint';
 import { toProperCase, validateFullName } from '@/utils/nameUtils';
 
 export default function ConnectPage() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [showPhoneCapture, setShowPhoneCapture] = useState(false);
   const [hasInvite, setHasInvite] = useState(false); // Track if user has invite
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState('');
   const [showThankYou, setShowThankYou] = useState(false);
-  
+  const [isMounted, setIsMounted] = useState(false);
+
+  // ✅ Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // ✅ Pre-fill phone from invite when phone capture modal opens
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -25,7 +31,7 @@ export default function ConnectPage() {
     }
     return digits;
   };
-  
+
   useEffect(() => {
     if (showPhoneCapture) {
       const pendingInviteStr = sessionStorage.getItem('pendingInvite');
@@ -43,7 +49,7 @@ export default function ConnectPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
+    setError('');
 
     // Validate both names are provided
     if (!firstName.trim() || !lastName.trim()) {
@@ -61,7 +67,7 @@ export default function ConnectPage() {
     // Concatenate and normalize to proper case
     const rawName = `${firstName.trim()} ${lastName.trim()}`;
     const fullName = toProperCase(rawName);
-    
+
     console.log('🔤 Name normalization:', { input: rawName, output: fullName });
 
     try {
@@ -69,7 +75,9 @@ export default function ConnectPage() {
       await deviceFingerprint.sendFingerprint(fullName);
 
       console.log('\n🔥 [CONNECT] Calling check-with-invite API...');
-      const response = await fetch(`/api/user/check-with-invite?name=${encodeURIComponent(fullName)}`);
+      const response = await fetch(
+        `/api/user/check-with-invite?name=${encodeURIComponent(fullName)}`
+      );
       const data = await response.json();
 
       console.log('\n🔥 [CONNECT] API RESPONSE RECEIVED 🔥');
@@ -86,13 +94,15 @@ export default function ConnectPage() {
           window.location.href = `/welcome-back?name=${encodeURIComponent(fullName)}&status=registered&memberCode=${memberCode}`;
         } else if (data.hasInvite && data.invite) {
           // PATH 2: Has pending invite → ALWAYS show phone confirmation modal
-          console.log('\n🔥🔥🔥 [CONNECT] INVITE FOUND - SHOWING PHONE MODAL 🔥🔥🔥');
+          console.log(
+            '\n🔥🔥🔥 [CONNECT] INVITE FOUND - SHOWING PHONE MODAL 🔥🔥🔥'
+          );
           console.log('[CONNECT] Invite details:', {
             id: data.invite.id,
             name: data.invite.name,
             phone: data.invite.phone,
             sponsorId: data.invite.sponsorId,
-            sponsorName: data.invite.sponsorName
+            sponsorName: data.invite.sponsorName,
           });
           console.log('[CONNECT] Storing invite in sessionStorage');
           sessionStorage.setItem('pendingInvite', JSON.stringify(data.invite));
@@ -113,7 +123,6 @@ export default function ConnectPage() {
     }
   };
 
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value);
     setPhone(formatted);
@@ -122,26 +131,28 @@ export default function ConnectPage() {
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
-    
+    setError('');
+
     try {
       // Store phone number in database
       const phoneDigits = phone.replace(/\D/g, '');
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
-      
+
       // Check if there's a pending invite
       const pendingInviteStr = sessionStorage.getItem('pendingInvite');
-      const pendingInvite = pendingInviteStr ? JSON.parse(pendingInviteStr) : null;
-      
+      const pendingInvite = pendingInviteStr
+        ? JSON.parse(pendingInviteStr)
+        : null;
+
       console.log('\n🔥🔥🔥 [CONNECT] SUBMITTING PHONE 🔥🔥🔥');
-      console.log('[CONNECT] Phone capture request:', { 
-        name: fullName, 
-        phone: phoneDigits, 
+      console.log('[CONNECT] Phone capture request:', {
+        name: fullName,
+        phone: phoneDigits,
         hasInvite: !!pendingInvite,
         inviteId: pendingInvite?.id,
-        sponsorId: pendingInvite?.sponsorId
+        sponsorId: pendingInvite?.sponsorId,
       });
-      
+
       const response = await fetch('/api/user/capture-phone', {
         method: 'POST',
         headers: {
@@ -150,21 +161,21 @@ export default function ConnectPage() {
         body: JSON.stringify({
           name: fullName,
           phone: phoneDigits,
-          inviteId: pendingInvite?.id
-        })
+          inviteId: pendingInvite?.id,
+        }),
       });
-      
+
       const data = await response.json();
       console.log('\n🔥 [CONNECT] PHONE CAPTURE RESPONSE 🔥');
       console.log('[CONNECT] Response status:', response.status);
       console.log('[CONNECT] Response data:', data);
       console.log('[CONNECT] User created?', !!data.user);
       console.log('[CONNECT] User memberCode:', data.user?.memberCode);
-      
+
       if (response.ok) {
         // Clear pending invite from session
         sessionStorage.removeItem('pendingInvite');
-        
+
         if (data.hasInvite && data.user) {
           // User created from invite - redirect to complete registration
           console.log('\n🔥🔥🔥 [CONNECT] USER CREATED - REDIRECTING 🔥🔥🔥');
@@ -183,14 +194,17 @@ export default function ConnectPage() {
         // Handle phone mismatch error specially
         if (data.code === 'PHONE_MISMATCH' && data.expectedPhone) {
           const formatted = formatPhoneNumber(data.expectedPhone);
-          setError(`This invitation is for phone number ${formatted}. Please use that number to continue.`);
+          setError(
+            `This invitation is for phone number ${formatted}. Please use that number to continue.`
+          );
           // Reset phone to the expected value
           setPhone(formatted);
         } else {
-          setError(data.error || 'Failed to submit phone number. Please try again.');
+          setError(
+            data.error || 'Failed to submit phone number. Please try again.'
+          );
         }
       }
-      
     } catch (error) {
       console.error('❌ Phone capture error:', error);
       setError('Failed to submit phone number. Please try again.');
@@ -208,16 +222,16 @@ export default function ConnectPage() {
   // STEP 3: Thank you modal
   if (showThankYou) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center">
-          <div className="text-green-500 text-6xl mb-4">✅</div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-4">Thank You!</h1>
-          <p className="text-gray-600 mb-6">
+      <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
+        <div className='bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center'>
+          <div className='text-green-500 text-6xl mb-4'>✅</div>
+          <h1 className='text-2xl font-bold text-gray-800 mb-4'>Thank You!</h1>
+          <p className='text-gray-600 mb-6'>
             We have your information, we'll be in touch.
           </p>
           <button
             onClick={handleThankYouClose}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className='w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
           >
             Close
           </button>
@@ -230,56 +244,62 @@ export default function ConnectPage() {
   if (showPhoneCapture) {
     // Use state instead of sessionStorage to prevent race condition
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-          <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
+      <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
+        <div className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'>
+          <h1 className='text-2xl font-bold text-center text-gray-800 mb-2'>
             {hasInvite ? '🎉 Complete Your Registration' : 'Name NOT FOUND!'}
           </h1>
-          <p className="text-center text-gray-600 mb-6">
-            {hasInvite 
-              ? 'Enter your phone number to complete registration' 
-              : 'Enter your phone and we\'ll be in touch'}
+          <p className='text-center text-gray-600 mb-6'>
+            {hasInvite
+              ? 'Enter your phone number to complete registration'
+              : "Enter your phone and we'll be in touch"}
           </p>
-          
-          <form onSubmit={handlePhoneSubmit} className="space-y-6">
+
+          <form onSubmit={handlePhoneSubmit} className='space-y-6'>
             <div suppressHydrationWarning>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor='phone'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
                 PHONE NUMBER *
               </label>
               {hasInvite && phone && (
-                <p className="text-sm text-blue-600 mb-2">
-                  ✓ This is the phone number from your invitation. Please confirm it's correct.
+                <p className='text-sm text-blue-600 mb-2'>
+                  ✓ This is the phone number from your invitation. Please
+                  confirm it's correct.
                 </p>
               )}
               <input
-                type="tel"
-                id="phone"
+                type='tel'
+                id='phone'
                 value={phone}
                 onChange={handlePhoneChange}
-                placeholder="(555) 123-4567"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder='(555) 123-4567'
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
                 required
               />
             </div>
 
-            {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+            {error && (
+              <p className='text-red-500 text-sm text-center'>{error}</p>
+            )}
 
             <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400"
+              type='submit'
+              className='w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400'
               disabled={isLoading || !phone.trim()}
             >
               {isLoading ? 'Submitting...' : 'Submit'}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className='mt-6 text-center'>
             <button
               onClick={() => {
                 setShowPhoneCapture(false);
                 setHasInvite(false); // Reset invite state
               }}
-              className="text-blue-600 hover:text-blue-800 text-sm"
+              className='text-blue-600 hover:text-blue-800 text-sm'
             >
               ← Try Different Name
             </button>
@@ -289,77 +309,111 @@ export default function ConnectPage() {
     );
   }
 
+  // ✅ Prevent hydration mismatch by only rendering after mount
+  if (!isMounted) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
+        <div className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'>
+          <div className='animate-pulse'>
+            <div className='h-8 bg-gray-200 rounded mb-6'></div>
+            <div className='space-y-4'>
+              <div className='h-4 bg-gray-200 rounded'></div>
+              <div className='h-10 bg-gray-200 rounded'></div>
+              <div className='h-4 bg-gray-200 rounded'></div>
+              <div className='h-10 bg-gray-200 rounded'></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // STEP 1: Name entry form
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">Connect to AM I HUMAN.net</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-2 gap-4" suppressHydrationWarning>
-            <div suppressHydrationWarning>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+    <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
+      <div
+        className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'
+        suppressHydrationWarning={true}
+      >
+        <h1 className='text-2xl font-bold text-center text-gray-800 mb-6'>
+          Connect to AM I HUMAN.net
+        </h1>
+        <form
+          onSubmit={handleSubmit}
+          className='space-y-6'
+          suppressHydrationWarning={true}
+        >
+          <div
+            className='grid grid-cols-2 gap-4'
+            suppressHydrationWarning={true}
+          >
+            <div suppressHydrationWarning={true}>
+              <label
+                htmlFor='firstName'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
                 FIRST NAME *
               </label>
               <input
-                type="text"
-                id="firstName"
+                type='text'
+                id='firstName'
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="First name"
+                onChange={e => setFirstName(e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='First name'
                 required
                 minLength={2}
               />
             </div>
             <div suppressHydrationWarning>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor='lastName'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
                 LAST NAME *
               </label>
               <input
-                type="text"
-                id="lastName"
+                type='text'
+                id='lastName'
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Last name"
+                onChange={e => setLastName(e.target.value)}
+                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
+                placeholder='Last name'
                 required
                 minLength={2}
               />
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+          {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
 
           <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400"
+            type='submit'
+            className='w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400'
             disabled={isLoading}
           >
             {isLoading ? 'Connecting...' : 'Enter'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <a
-            href="/"
-            className="text-blue-600 hover:text-blue-800 text-sm"
-          >
+        <div className='mt-6 text-center'>
+          <a href='/' className='text-blue-600 hover:text-blue-800 text-sm'>
             ← Back to Home
           </a>
         </div>
 
         {/* Temporary Admin and Site Wide Member Dash links */}
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <div className="text-center space-y-2">
+        <div className='mt-8 pt-6 border-t border-gray-200'>
+          <div className='text-center space-y-2'>
             <a
-              href="/admin-dashboard"
-              className="block text-sm text-gray-600 hover:text-blue-600"
+              href='/admin-dashboard'
+              className='block text-sm text-gray-600 hover:text-blue-600'
             >
               🔧 Admin Dashboard
             </a>
             <a
-              href="/member-dashboard?memberCode=demo"
-              className="block text-sm text-gray-600 hover:text-blue-600"
+              href='/member-dashboard?memberCode=demo'
+              className='block text-sm text-gray-600 hover:text-blue-600'
             >
               👥 Site Wide Member Dash
             </a>

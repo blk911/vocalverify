@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server";
-import { getDb } from "@/lib/firebaseAdmin";
-import { logger } from "@/lib/logger";
+import { NextResponse } from 'next/server';
+import { getDb } from '@/lib/firebaseAdmin';
+import { logger } from '@/lib/logger';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export const POST = async (req: Request) => {
   try {
     logger.info('Starting direct database setup', 'DatabaseSetup');
-    
+
     const db = getDb();
-    
+
     // Create collections by adding documents
     const collections = [
       'users',
-      'notFoundRegistry', 
+      'notFoundRegistry',
       'invites',
       'voice_uploads',
       'voice_biometrics',
@@ -22,36 +22,39 @@ export const POST = async (req: Request) => {
       'trustBonds',
       'trustConnections',
       'nfArchive',
-      'tempMembers'
+      'tempMembers',
     ];
 
     const results = [];
-    
+
     for (const collectionName of collections) {
       try {
         // Add a simple document to create the collection
         const docRef = await db.collection(collectionName).add({
           _setup: true,
           createdAt: new Date(),
-          collection: collectionName
+          collection: collectionName,
         });
-        
+
         results.push({
           collection: collectionName,
           status: 'created',
-          docId: docRef.id
+          docId: docRef.id,
         });
-        
+
         logger.info(`Created collection: ${collectionName}`, 'DatabaseSetup');
-        
       } catch (error: any) {
         results.push({
           collection: collectionName,
           status: 'failed',
-          error: error.message
+          error: error.message,
         });
-        
-        logger.error(`Failed to create collection ${collectionName}`, error, 'DatabaseSetup');
+
+        logger.error(
+          `Failed to create collection ${collectionName}`,
+          error,
+          'DatabaseSetup'
+        );
       }
     }
 
@@ -64,7 +67,7 @@ export const POST = async (req: Request) => {
         phone: '+1234567890',
         status: 'active',
         createdAt: new Date(),
-        hasVoice: false
+        hasVoice: false,
       });
 
       // Sample not found entry
@@ -73,11 +76,10 @@ export const POST = async (req: Request) => {
         phone: '+1234567890',
         sponsorName: 'Admin',
         status: 'pending',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       logger.info('Sample data added successfully', 'DatabaseSetup');
-      
     } catch (error: any) {
       logger.warn('Sample data creation failed', error, 'DatabaseSetup');
     }
@@ -86,16 +88,15 @@ export const POST = async (req: Request) => {
       ok: true,
       message: 'Database setup completed',
       results,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error: any) {
     logger.error('Database setup failed', error, 'DatabaseSetup');
     return NextResponse.json(
-      { 
-        ok: false, 
+      {
+        ok: false,
         error: 'Database setup failed',
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );
@@ -105,11 +106,11 @@ export const POST = async (req: Request) => {
 export const GET = async (req: Request) => {
   try {
     const db = getDb();
-    
+
     // Check which collections exist
     const collections = [
       'users',
-      'notFoundRegistry', 
+      'notFoundRegistry',
       'invites',
       'voice_uploads',
       'voice_biometrics',
@@ -118,24 +119,24 @@ export const GET = async (req: Request) => {
       'trustBonds',
       'trustConnections',
       'nfArchive',
-      'tempMembers'
+      'tempMembers',
     ];
 
     const status = [];
-    
+
     for (const collectionName of collections) {
       try {
         const snapshot = await db.collection(collectionName).limit(1).get();
         status.push({
           collection: collectionName,
           exists: !snapshot.empty,
-          docCount: snapshot.size
+          docCount: snapshot.size,
         });
       } catch (error: any) {
         status.push({
           collection: collectionName,
           exists: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -143,40 +144,18 @@ export const GET = async (req: Request) => {
     return NextResponse.json({
       ok: true,
       status,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error: any) {
     return NextResponse.json(
-      { 
-        ok: false, 
+      {
+        ok: false,
         error: 'Database status check failed',
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

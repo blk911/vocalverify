@@ -7,7 +7,10 @@ export async function POST(request: NextRequest) {
 
     if (!unitId || !tuName || !memberCode) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: unitId, tuName, memberCode' },
+        {
+          success: false,
+          error: 'Missing required fields: unitId, tuName, memberCode',
+        },
         { status: 400 }
       );
     }
@@ -29,7 +32,10 @@ export async function POST(request: NextRequest) {
     // Check if member is in this TU
     if (!memberCodes.includes(memberCode)) {
       return NextResponse.json(
-        { success: false, error: 'Member not authorized to update this Trust Unit' },
+        {
+          success: false,
+          error: 'Member not authorized to update this Trust Unit',
+        },
         { status: 403 }
       );
     }
@@ -37,7 +43,7 @@ export async function POST(request: NextRequest) {
     // Update the TU name
     await db.collection('trustUnits').doc(unitId).update({
       tuName: tuName.trim(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     console.log(`[TU-UPDATE] Updated TU ${unitId} name to: ${tuName}`);
@@ -45,9 +51,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Trust Unit name updated successfully',
-      tuName: tuName.trim()
+      tuName: tuName.trim(),
     });
-
   } catch (error: any) {
     console.error('[TU-UPDATE] Error:', error);
     return NextResponse.json(
@@ -56,10 +61,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
-
-
-
-
-

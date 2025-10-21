@@ -7,32 +7,39 @@ export async function GET(request: NextRequest) {
     const memberCode = searchParams.get('memberCode');
 
     if (!memberCode) {
-      return NextResponse.json({ error: 'Member code is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Member code is required' },
+        { status: 400 }
+      );
     }
 
     const db = getDb();
     const trustBondsRef = db.collection('trustBonds');
-    
+
     // ✅ FIXED: Trust bonds have fromMemberCode/toMemberCode, not memberId
     // Get bonds where member is either sender or receiver
-    const sentBondsSnapshot = await trustBondsRef.where('fromMemberCode', '==', memberCode).get();
-    const receivedBondsSnapshot = await trustBondsRef.where('toMemberCode', '==', memberCode).get();
+    const sentBondsSnapshot = await trustBondsRef
+      .where('fromMemberCode', '==', memberCode)
+      .get();
+    const receivedBondsSnapshot = await trustBondsRef
+      .where('toMemberCode', '==', memberCode)
+      .get();
 
     const trustBonds: any[] = [];
-    
-    sentBondsSnapshot.forEach((doc) => {
+
+    sentBondsSnapshot.forEach(doc => {
       trustBonds.push({
         id: doc.id,
         direction: 'sent',
-        ...doc.data()
+        ...doc.data(),
       });
     });
-    
-    receivedBondsSnapshot.forEach((doc) => {
+
+    receivedBondsSnapshot.forEach(doc => {
       trustBonds.push({
         id: doc.id,
         direction: 'received',
-        ...doc.data()
+        ...doc.data(),
       });
     });
 
@@ -41,6 +48,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, trustBonds });
   } catch (error) {
     console.error('Error fetching trust bonds:', error);
-    return NextResponse.json({ error: 'Failed to fetch trust bonds' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch trust bonds' },
+      { status: 500 }
+    );
   }
 }

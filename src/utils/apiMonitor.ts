@@ -35,7 +35,7 @@ class ApiMonitor {
     const totalCalls = this.calls.length;
     const errorCalls = this.getRecentErrors().length;
     const slowCalls = this.getSlowCalls().length;
-    
+
     return `
 🔍 API HEALTH REPORT
 ==================
@@ -57,37 +57,33 @@ export async function monitoredFetch(
   options?: RequestInit
 ): Promise<Response> {
   const startTime = Date.now();
-  
+
   try {
     const response = await fetch(url, options);
     const responseTime = Date.now() - startTime;
-    
+
     apiMonitor.logApiCall({
       url,
       method: options?.method || 'GET',
       timestamp: Date.now(),
       status: response.status,
       responseTime,
-      error: response.ok ? undefined : `HTTP ${response.status}`
+      error: response.ok ? undefined : `HTTP ${response.status}`,
     });
-    
+
     return response;
   } catch (error) {
     const responseTime = Date.now() - startTime;
-    
+
     apiMonitor.logApiCall({
       url,
       method: options?.method || 'GET',
       timestamp: Date.now(),
       status: 0,
       responseTime,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     throw error;
   }
 }
-
-
-
-

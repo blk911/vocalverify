@@ -1,27 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/firebaseAdmin";
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/lib/firebaseAdmin';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest) {
   try {
-    
     // Get all users from Firestore
     const db = getDb();
     const usersSnapshot = await db.collection('users').get();
     const users = usersSnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
 
     // Calculate stats
     const totalMembers = users.length;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const newToday = users.filter(user => {
       if (!(user as any).createdAt) return false;
-      
+
       // Handle different date formats
       let userDate;
       if (typeof (user as any).createdAt === 'string') {
@@ -34,32 +33,32 @@ export async function GET(req: NextRequest) {
       } else {
         userDate = new Date((user as any).createdAt);
       }
-      
+
       return userDate >= today;
     }).length;
 
-    const pendingMembers = users.filter(user => (user as any).status === 'pending').length;
-    const registeredMembers = users.filter(user => (user as any).status === 'registered').length;
+    const pendingMembers = users.filter(
+      user => (user as any).status === 'pending'
+    ).length;
+    const registeredMembers = users.filter(
+      user => (user as any).status === 'registered'
+    ).length;
 
     const stats = {
       totalMembers,
       newToday,
       pendingMembers,
-      registeredMembers
+      registeredMembers,
     };
-
 
     return NextResponse.json({
       ok: true,
-      stats
+      stats,
     });
-
   } catch (error: any) {
     return NextResponse.json(
-      { ok: false, error: "Failed to fetch stats" },
+      { ok: false, error: 'Failed to fetch stats' },
       { status: 500 }
     );
   }
 }
-
-

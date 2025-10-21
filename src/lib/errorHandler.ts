@@ -14,7 +14,7 @@ export enum ErrorType {
   NOT_FOUND = 'NOT_FOUND',
   DATABASE = 'DATABASE_ERROR',
   EXTERNAL_SERVICE = 'EXTERNAL_SERVICE_ERROR',
-  INTERNAL = 'INTERNAL_ERROR'
+  INTERNAL = 'INTERNAL_ERROR',
 }
 
 // Custom error class
@@ -33,13 +33,13 @@ export class AppError extends Error {
   ) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
-    
+
     this.type = type;
     this.statusCode = statusCode;
     this.isOperational = isOperational;
     this.context = context;
     this.name = this.constructor.name;
-    
+
     Error.captureStackTrace(this);
   }
 }
@@ -82,7 +82,13 @@ export class DatabaseError extends AppError {
 // External service error
 export class ExternalServiceError extends AppError {
   constructor(service: string, message: string, context?: any) {
-    super(`${service} error: ${message}`, ErrorType.EXTERNAL_SERVICE, 503, true, context);
+    super(
+      `${service} error: ${message}`,
+      ErrorType.EXTERNAL_SERVICE,
+      503,
+      true,
+      context
+    );
   }
 }
 
@@ -92,13 +98,8 @@ export class ExternalServiceError extends AppError {
 export function handleApiError(error: unknown, context?: string): NextResponse {
   // Log the error
   if (error instanceof AppError) {
-    logger.error(
-      error.message,
-      error,
-      context || error.type,
-      error.context
-    );
-    
+    logger.error(error.message, error, context || error.type, error.context);
+
     return NextResponse.json(
       {
         ok: false,
@@ -106,37 +107,37 @@ export function handleApiError(error: unknown, context?: string): NextResponse {
         type: error.type,
         ...(process.env.NODE_ENV === 'development' && {
           stack: error.stack,
-          context: error.context
-        })
+          context: error.context,
+        }),
       },
       { status: error.statusCode }
     );
   }
-  
+
   // Handle standard errors
   if (error instanceof Error) {
     logger.error(error.message, error, context);
-    
+
     return NextResponse.json(
       {
         ok: false,
         error: 'An unexpected error occurred',
         ...(process.env.NODE_ENV === 'development' && {
           message: error.message,
-          stack: error.stack
-        })
+          stack: error.stack,
+        }),
       },
       { status: 500 }
     );
   }
-  
+
   // Handle unknown errors
   logger.error('Unknown error occurred', undefined, context, { error });
-  
+
   return NextResponse.json(
     {
       ok: false,
-      error: 'An unexpected error occurred'
+      error: 'An unexpected error occurred',
     },
     { status: 500 }
   );
@@ -165,13 +166,16 @@ export function validateRequired(
   requiredFields: string[]
 ): void {
   const missing: string[] = [];
-  
+
   for (const field of requiredFields) {
-    if (!data[field] || (typeof data[field] === 'string' && !data[field].trim())) {
+    if (
+      !data[field] ||
+      (typeof data[field] === 'string' && !data[field].trim())
+    ) {
       missing.push(field);
     }
   }
-  
+
   if (missing.length > 0) {
     throw new ValidationError(
       `Missing required fields: ${missing.join(', ')}`,
@@ -221,13 +225,13 @@ export async function retryOperation<T>(
   delayMs: number = 1000
 ): Promise<T> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      
+
       if (attempt < maxRetries) {
         logger.warn(
           `Operation failed, retrying (${attempt}/${maxRetries})`,
@@ -238,7 +242,7 @@ export async function retryOperation<T>(
       }
     }
   }
-  
+
   throw new ExternalServiceError(
     'Operation',
     `Failed after ${maxRetries} attempts: ${lastError?.message}`,
@@ -257,7 +261,7 @@ export async function withTimeout<T>(
   const timeout = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
   });
-  
+
   return Promise.race([promise, timeout]);
 }
 
@@ -268,15 +272,15 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof AppError) {
     return error.message;
   }
-  
+
   if (error instanceof Error) {
     return error.message;
   }
-  
+
   if (typeof error === 'string') {
     return error;
   }
-  
+
   return 'An unexpected error occurred';
 }
 
@@ -289,12 +293,3 @@ export function isOperationalError(error: unknown): boolean {
   }
   return false;
 }
-
-
-
-
-
-
-
-
-
