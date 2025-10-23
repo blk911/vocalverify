@@ -28,10 +28,13 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className='relative h-screen w-full overflow-hidden bg-black'>
+    <main 
+      className='relative h-screen w-full overflow-hidden bg-black'
+      style={{ position:'relative', height:'100vh', width:'100%', overflow:'hidden', background:'#000' }}
+    >
       {/* Background image */}
       <div
-        className='absolute inset-0 bg-cover bg-center bg-no-repeat'
+        className='landing-bg'
         style={{ backgroundImage: 'url(/amihuman-bkgrnd.png)' }}
         aria-hidden='true'
       />
@@ -60,17 +63,14 @@ export default function HomePage() {
       </div>
 
       {/* ENTER button - centered near bottom; fades in after sequence */}
-      <div className='absolute bottom-24 left-1/2 z-10 -translate-x-1/2'>
-        <button
+      <div className='center-abs' style={{ bottom:'6rem', position:'absolute' }}>
+        <button 
+          className="btn primary" 
           onClick={() => (window.location.href = '/connect')}
-          className={[
-            // thinner, soft gray, white letters
-            'px-6 py-2 text-base font-semibold tracking-wide text-white',
-            'bg-gray-600/90 hover:bg-gray-500 rounded-md shadow-md',
-            'focus:outline-none focus:ring-2 focus:ring-gray-400/60',
-            'transition-opacity duration-700',
-            showEnter ? 'opacity-100' : 'opacity-0',
-          ].join(' ')}
+          style={{
+            opacity: showEnter ? 1 : 0,
+            transition: 'opacity 0.7s'
+          }}
           disabled={!showEnter}
           aria-label='Enter to connect'
         >

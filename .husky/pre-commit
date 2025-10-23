@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Protect core CSS/config from accidental rewrites
-if git diff --cached --name-only | grep -E '^(src/app/globals\.css|postcss\.config\.js|tailwind\.config\.(js|ts))$' >/dev/null; then
+# Block accidental edits to CSS pipeline (override with -n if you really mean it)
+if git diff --cached --name-only | grep -E '^(postcss\.config\.js|tailwind\.config\.(js|ts)|src/app/globals\.css)$' >/dev/null; then
   echo "❌ Refusing to commit changes to core CSS/config without override."
   echo "   Use: git commit -n to bypass (not recommended)."
   exit 1
