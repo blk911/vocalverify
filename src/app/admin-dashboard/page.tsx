@@ -1135,14 +1135,16 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className='min-h-screen flex flex-col'>
+    <div id="admin-shell" className='min-h-screen'>
       <AdminTopbar />
       <div className='flex flex-1'>
-        <AdminSidebar
-          activeSection={activeSection}
-          onSectionChange={setActiveSection}
-        />
-        <main className='flex-1 bg-slate-50 p-6'>
+        <div id="admin-panel">
+          <AdminSidebar
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+          />
+        </div>
+        <main className='flex-1 p-6'>
           <div className='max-w-7xl mx-auto'>{renderSectionContent()}</div>
         </main>
       </div>
