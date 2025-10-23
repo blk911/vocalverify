@@ -41,7 +41,8 @@ export default function TrustUnitModal({
 
   useEffect(() => {
     if (isOpen) {
-      setIsVisible(true);
+      // Use setTimeout to avoid synchronous setState in effect
+      setTimeout(() => setIsVisible(true), 0);
     } else {
       setTimeout(() => setIsVisible(false), 300);
     }

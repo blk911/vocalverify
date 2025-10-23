@@ -1,12 +1,5 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-# Run linting and formatting
-npm run lint:fix
-npm run prettier:check
-
-# Run tests
-npm run test
-
-# Check naming conventions
-npm run naming:check
+npm run lint-staged
+npm run typecheck

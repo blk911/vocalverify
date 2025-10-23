@@ -1,0 +1,20 @@
+{
+  "relationship": "parent_child",
+  "version": "1",
+  "domains": [
+    {
+      "name": "trips",
+      "seeds": [
+        "Top three trips we call our classics.",
+        "The windy one—what broke and what was plan B?",
+        "The snack and store we hit after a tough day."
+      ],
+      "refine": [
+        "Say the route or two waypoints.",
+        "Name one person who witnessed it.",
+        "Give the object that became a keepsake."
+      ]
+    }
+  ],
+  "nonce_words": ["mesa","juniper","sparrow","pebble","sagebrush","ember"]
+}

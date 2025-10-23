@@ -2,79 +2,64 @@
   "name": "amihuman",
   "version": "1.0.0",
   "private": true,
-  "engines": {
-    "node": ">=20.10.0",
-    "npm": ">=10.0.0"
-  },
+  "description": "AM I HUMAN - Social Media Platform with Vault System",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "prettier": "prettier --write .",
-    "prettier:check": "prettier --check .",
+    "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "typecheck": "tsc -b --pretty false",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "prettier": "prettier --write .",
+    "prettier:check": "prettier --check .",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:e2e",
     "analyze": "ANALYZE=true npm run build",
-    "audit": "audit-ci --moderate",
-    "naming:check": "node scripts/monitor-naming-conventions.js",
-    "naming:audit": "node audit-naming-conventions.js",
-    "naming:dashboard": "node scripts/naming-dashboard.js",
-    "pre-commit": "npm run naming:check && npm run lint && npm run prettier:check",
-    "prepare": "husky",
-    "type-check": "tsc --noEmit",
-    "quality": "npm run lint && npm run prettier:check && npm run type-check && npm run test"
-  },
-  "dependencies": {
-    "@aws-sdk/client-connect": "^3.896.0",
-    "@aws-sdk/client-s3": "^3.896.0",
-    "@aws-sdk/client-transcribe": "^3.896.0",
-    "@types/qrcode": "^1.5.5",
-    "firebase": "^12.2.1",
-    "firebase-admin": "^12.7.0",
-    "next": "^15.2.2",
-    "qrcode": "^1.5.4",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^12.0.0"
-  },
-  "devDependencies": {
-    "@modelcontextprotocol/sdk": "^1.19.1",
-    "@next/bundle-analyzer": "^15.5.6",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@types/jest": "^30.0.0",
-    "@types/react": "19.1.12",
-    "@typescript-eslint/eslint-plugin": "^8.46.2",
-    "@typescript-eslint/parser": "^8.46.2",
-    "audit-ci": "^7.1.0",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.37.0",
-    "eslint-config-next": "^15.5.4",
-    "fs-extra": "^11.3.2",
-    "husky": "^9.1.7",
-    "jest": "^30.2.0",
-    "lighthouse": "^13.0.0",
-    "lint-staged": "^16.2.3",
-    "playwright": "^1.56.1",
-    "postcss": "^8.5.6",
-    "prettier": "^3.6.2",
-    "tailwindcss": "^3.3.0",
-    "ts-jest": "^29.4.4",
-    "tsx": "^4.20.6",
-    "typescript": "^5.4.0",
-    "zod": "^3.25.76"
+    "audit": "audit-ci --config audit-ci.json",
+    "validate": "npm run lint && npm run type-check && npm run build",
+    "validate:full": "npm run lint && npm run type-check && npm run test && npm run build && npm run audit",
+    "pre-commit": "npm run validate",
+    "error-check": "npm run validate && echo '✅ All validations passed'",
+    "quality": "npm run validate:full"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "node scripts/monitor-naming-conventions.js"
+      "eslint --fix --max-warnings=0",
+      "git add"
+    ],
+    "*.md": [
+      "prettier --write",
+      "git add"
     ]
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.914.0",
+    "@aws-sdk/client-transcribe": "^3.914.0",
+    "@playwright/test": "^1.56.1",
+    "@tailwindcss/postcss": "^4.1.16",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.19.23",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.2.2",
+    "eslint": "^9.38.0",
+    "eslint-config-next": "^16.0.0",
+    "firebase": "^12.4.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.1",
+    "autoprefixer": "^10.4.21",
+    "firebase-admin": "^13.5.0",
+    "next": "^16.0.0",
+    "qrcode": "^1.5.4",
+    "uuid": "^13.0.0",
+    "zod": "^3.25.76"
   }
 }

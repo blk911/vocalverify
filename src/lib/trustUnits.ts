@@ -328,6 +328,10 @@ export async function createOrGetTriangleCloseTU(
       };
     }
 
+    // Get root sponsor data for context
+    const rootDoc = await db.collection('users').doc(rootA).get();
+    const rootData = rootDoc.exists ? (rootDoc.data() as UserData) : null;
+
     // ✅ FIXED: Include root sponsor in triangle-close TU for complete display
     const rootMember: TUMember = {
       memberCode: rootA,
@@ -351,10 +355,6 @@ export async function createOrGetTriangleCloseTU(
       },
       rootMember, // ✅ FIXED: Include root sponsor
     ];
-
-    // Get root sponsor data for context
-    const rootDoc = await db.collection('users').doc(rootA).get();
-    const rootData = rootDoc.exists ? (rootDoc.data() as UserData) : null;
 
     // Generate TU name for triangle-close
     const tuName = `${rootData?.name || rootData?.fullName || 'Root'}'s Triangle`;

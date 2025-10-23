@@ -20,7 +20,7 @@ export default function MessageThread({
   const [activeTab, setActiveTab] = useState('messages');
   const [newMessage, setNewMessage] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingMessage, setEditingMessage] = useState(null);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
   const [editText, setEditText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -212,7 +212,7 @@ export default function MessageThread({
               {members.length} member{members.length !== 1 ? 's' : ''} online
             </div>
             <div className='flex -space-x-2'>
-              {members.slice(0, 3).map((member, index) => (
+              {members.slice(0, 3).map((member: any, index: number) => (
                 <div
                   key={member.id}
                   className='w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium border-2 border-white'
@@ -300,7 +300,7 @@ export default function MessageThread({
                                       key={reaction}
                                       className='text-xs bg-gray-200 px-2 py-1 rounded-full'
                                     >
-                                      {reaction} {count}
+                                      {reaction} {String(count)}
                                     </span>
                                   )
                                 )}

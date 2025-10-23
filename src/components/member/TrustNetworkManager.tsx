@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface TrustBond {
   id: string;
@@ -47,13 +47,7 @@ export default function TrustNetworkManager({
     message: string;
   } | null>(null);
 
-  useEffect(() => {
-    if (memberCode) {
-      loadTrustData();
-    }
-  }, [memberCode]);
-
-  const loadTrustData = async () => {
+  const loadTrustData = useCallback(async () => {
     setLoading(true);
     try {
       // Load trust unit status
@@ -96,7 +90,13 @@ export default function TrustNetworkManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [memberCode]);
+
+  useEffect(() => {
+    if (memberCode) {
+      loadTrustData();
+    }
+  }, [memberCode, loadTrustData]);
 
   const handleCreateBond = async () => {
     if (!targetMemberCode.trim()) {
@@ -419,7 +419,7 @@ export default function TrustNetworkManager({
                               onError={e => {
                                 // Fallback to crown if image fails to load
                                 e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling.style.display =
+                                (e.currentTarget.nextElementSibling as HTMLElement).style.display =
                                   'flex';
                               }}
                             />

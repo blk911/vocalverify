@@ -1,4 +1,4 @@
-﻿import './globals.css';
+﻿import "./globals.css"; // must exist
 
 export const metadata = {
   title: 'Simple Next',
@@ -11,14 +11,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='en'>
-      <head>
-        <meta name='viewport' content='width=device-width, initial-scale=1' />
-      </head>
-      <body
-        className='font-sans m-0 bg-gray-100'
-        suppressHydrationWarning={true}
-      >
+    <html lang="en">
+      <head><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
+      <body suppressHydrationWarning={true}>
         {children}
       </body>
     </html>

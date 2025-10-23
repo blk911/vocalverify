@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { capitalizeName } from '@/utils/stringUtils';
 
 interface ProfileThumbnailProps {
@@ -20,18 +20,7 @@ export default function ProfileThumbnail({
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (directProfilePicture) {
-      // Use direct profile picture if provided
-      setProfilePicture(directProfilePicture);
-      setIsLoading(false);
-    } else {
-      // Fallback to API call if no direct picture provided
-      loadProfilePicture();
-    }
-  }, [memberCode, directProfilePicture]);
-
-  const loadProfilePicture = async () => {
+  const loadProfilePicture = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/user/profile-picture?memberCode=${memberCode}`
@@ -46,7 +35,18 @@ export default function ProfileThumbnail({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [memberCode]);
+
+  useEffect(() => {
+    if (directProfilePicture) {
+      // Use direct profile picture if provided
+      setProfilePicture(directProfilePicture);
+      setIsLoading(false);
+    } else {
+      // Fallback to API call if no direct picture provided
+      loadProfilePicture();
+    }
+  }, [memberCode, directProfilePicture, loadProfilePicture]);
 
   const getSizeClasses = () => {
     switch (size) {

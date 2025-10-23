@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 function WelcomeBackContent() {
@@ -9,16 +9,7 @@ function WelcomeBackContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    // Auto-redirect after 3 seconds
-    const timer = setTimeout(() => {
-      handleContinue();
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleContinue = () => {
+  const handleContinue = useCallback(() => {
     if (userStatus === 'registered') {
       // Redirect to member dashboard
       window.location.href = `/member-dashboard?memberCode=${searchParams.get('memberCode')}`;
@@ -30,7 +21,16 @@ function WelcomeBackContent() {
       // Redirect to waiting page
       window.location.href = `/waiting-for-invite?name=${encodeURIComponent(name || '')}`;
     }
-  };
+  }, [userStatus, searchParams, name]);
+
+  useEffect(() => {
+    // Auto-redirect after 3 seconds
+    const timer = setTimeout(() => {
+      handleContinue();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [handleContinue]);
 
   const getStatusMessage = () => {
     switch (userStatus) {

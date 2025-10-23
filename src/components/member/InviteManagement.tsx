@@ -1,5 +1,5 @@
 ﻿'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface InviteManagementProps {
   memberName: string;
@@ -22,11 +22,7 @@ export default function InviteManagement({
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    loadInviteHistory();
-  }, []);
-
-  const loadInviteHistory = async () => {
+  const loadInviteHistory = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/member/invite-history?memberCode=${memberCode}`
@@ -38,7 +34,11 @@ export default function InviteManagement({
     } catch (error) {
       console.error('Load invite history error:', error);
     }
-  };
+  }, [memberCode]);
+
+  useEffect(() => {
+    loadInviteHistory();
+  }, [loadInviteHistory]);
 
   const handleInviteFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -96,11 +96,9 @@ export default function InviteManagement({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          firstName: inviteForm.firstName,
-          lastName: inviteForm.lastName,
-          phone: phoneDigits,
-          sponsorId: memberCode,
-          sponsorName: memberName,
+          memberCode: memberCode,
+          inviteeEmail: `${phoneDigits}@temp.amihuman.net`, // Use phone as temp email
+          inviteeName: `${inviteForm.firstName} ${inviteForm.lastName}`.trim(),
         }),
       });
 

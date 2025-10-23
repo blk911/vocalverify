@@ -221,7 +221,7 @@ export default function VaultContent({
       </div>
 
       <div className='space-y-3'>
-        {mockMembers.map(member => (
+        {mockMembers.map((member: any) => (
           <div
             key={member.id}
             className='flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4'
