@@ -1135,17 +1135,19 @@ export default function AdminDashboard() {
   );
 
   return (
-    <div className='min-h-screen flex flex-col'>
-      <AdminTopbar />
-      <div className='flex flex-1'>
+    <div id="admin-shell">
+      <aside id="admin-panel">
         <AdminSidebar
           activeSection={activeSection}
           onSectionChange={setActiveSection}
         />
-        <main className='flex-1 bg-slate-50 p-6'>
-          <div className='max-w-7xl mx-auto'>{renderSectionContent()}</div>
-        </main>
-      </div>
+      </aside>
+      <main id="admin-main">
+        <div className="admin-hero">
+          <img src="/amihuman-bkgrnd.png" alt="" />
+        </div>
+        <div className='max-w-7xl mx-auto'>{renderSectionContent()}</div>
+      </main>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
