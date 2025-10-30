@@ -1,0 +1,17 @@
+﻿# Normalize text files to LF in repo; Windows can still checkout CRLF
+* text=auto eol=lf
+
+# Images/binaries untouched
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+
+# SVG treated as text (diffable)
+*.svg text eol=lf
+
+# Don’t churn logs/reports
+firestore-debug.log -text
+playwright-report/** -text
+test-results/** -text
