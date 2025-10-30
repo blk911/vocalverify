@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
     const invitesSnapshot = await db
       .collection('invites')
       .where('nameLower', '==', nameLower)
-      .where('status', '==', 'pending')
+      .where('status', 'in', ['pending', 'sent'])
       .limit(1)
       .get();
 

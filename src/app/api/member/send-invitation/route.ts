@@ -1,3 +1,4 @@
+﻿import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/firebaseAdmin';
 import { normalizeName } from '@/utils/nameUtils';
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[MEMBER-SEND-INVITATION] Created invite:', inviteRef.id);
 
-    // ⚡ CRITICAL: Check if this name exists in notFoundRegistry
+    // âš¡ CRITICAL: Check if this name exists in notFoundRegistry
     if (nameLower) {
       const nfSnapshot = await db
         .collection('notFoundRegistry')
@@ -70,7 +71,7 @@ export async function POST(req: NextRequest) {
       if (!nfSnapshot.empty) {
         const nfDoc = nfSnapshot.docs[0];
         console.log(
-          '[MEMBER-SEND-INVITATION] ⚡ MATCH FOUND in notFoundRegistry:',
+          '[MEMBER-SEND-INVITATION] âš¡ MATCH FOUND in notFoundRegistry:',
           nfDoc.id
         );
 
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
         });
 
         console.log(
-          '[MEMBER-SEND-INVITATION] ✅ Updated notFoundRegistry status to "invited"'
+          '[MEMBER-SEND-INVITATION] âœ… Updated notFoundRegistry status to "invited"'
         );
       }
     }
@@ -104,3 +105,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+

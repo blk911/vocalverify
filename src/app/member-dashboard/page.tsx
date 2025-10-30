@@ -14,7 +14,7 @@ import TBList from '@/app/dash/profile/TBList';
 import ArtifactsList from '@/app/dash/profile/ArtifactsList';
 import { deviceFingerprint } from '@/lib/deviceFingerprint';
 import { capitalizeName } from '@/utils/stringUtils';
-import { ErrorMonitor, setupErrorHandling } from '@/lib/errorMonitor';
+import { setupErrorHandling } from '@/lib/errorMonitor';
 import { apiCalls } from '@/utils/apiEnforcer';
 
 function MemberDashboardContent() {
@@ -623,7 +623,11 @@ function MemberDashboardContent() {
 
   const shareViaSMS = (invite: any) => {
     try {
-      const message = `Hi ${invite.name}! I've invited you to join my trusted network. Scan this QR code or visit: ${invite.qrData}`;
+      // Generate proper registration URL with invite data
+      const baseUrl = window.location.origin;
+      const registrationUrl = `${baseUrl}/register?name=${encodeURIComponent(invite.name)}&phone=${encodeURIComponent(invite.phone)}&inviteId=${invite.id}`;
+      
+      const message = `Hi ${invite.name}! I've invited you to join my trusted network. Please register here: ${registrationUrl}`;
       const smsUrl = `sms:${invite.phone}?body=${encodeURIComponent(message)}`;
       window.open(smsUrl, '_blank');
     } catch (error) {
@@ -778,7 +782,7 @@ function MemberDashboardContent() {
       console.log('Member Code:', memberCode);
       
       const response = await fetch(
-        `/api/invites/list?memberCode=${memberCode}`
+        `/api/member/invite-history?memberCode=${memberCode}`
       );
       console.log('List response status:', response.status);
       
@@ -787,9 +791,14 @@ function MemberDashboardContent() {
       
       if (data.ok) {
         console.log('? Loaded invites:', data.invites?.length || 0);
+        if (data.warning) {
+          console.warn('⚠️ Invite history warning:', data.warning);
+        }
         setInvitedLovedOnes(data.invites || []);
       } else {
         console.error('? Failed to load invites:', data.error);
+        // Set empty array to prevent UI crashes
+        setInvitedLovedOnes([]);
       }
     } catch (error) {
       console.error('? Error loading invited loved ones:', error);
@@ -822,7 +831,7 @@ function MemberDashboardContent() {
         }
 
         // Check for trust unit prospects or pending units that need THIS user's attention
-        const relevantUnits = data.trustUnits.filter((unit: any) => {
+        const relevantUnits = (data.trustUnits || []).filter((unit: any) => {
           // Include both 'prospect' and 'pending_connections' status
           if (
             unit.status !== 'prospect' &&
@@ -2331,10 +2340,12 @@ function MemberDashboardContent() {
     
     // Test camera availability on page load
     testCameraOnLoad();
-    
-    // Load invited loved ones
+  }, []);
+
+  // Load invited loved ones
+  useEffect(() => {
     loadInvitedLovedOnes();
-  }, [memberCode, loadInvitedLovedOnes, loadMemberData, loadVoicePrints]);
+  }, [memberCode]);
 
   // Cleanup polling on component unmount
   useEffect(() => {
@@ -2357,7 +2368,7 @@ function MemberDashboardContent() {
       loadTrustUnits();
       loadTrustBonds();
     }
-  }, [activeSection, memberCode, loadInvitedLovedOnes, loadTrustBonds, loadTrustUnits]);
+  }, [activeSection, memberCode]);
 
   // Load data when Home section is active
   useEffect(() => {
@@ -2366,7 +2377,7 @@ function MemberDashboardContent() {
       loadTrustUnits();
       loadTrustBonds();
     }
-  }, [activeSection, memberCode, loadInvitedLovedOnes, loadTrustBonds, loadTrustUnits]);
+  }, [activeSection, memberCode]);
 
   // Load data when Vaults section is active - RESTORE WORKING FUNCTIONALITY
   useEffect(() => {
@@ -2377,14 +2388,14 @@ function MemberDashboardContent() {
       loadTrustUnits();
       loadTrustBonds();
     }
-  }, [activeSection, memberCode, loadTrustBonds, loadTrustUnits]);
+  }, [activeSection, memberCode]);
 
   // Load Trust Units when dashboard loads
   useEffect(() => {
     if (memberCode) {
       loadTrustUnits();
     }
-  }, [memberCode, loadTrustUnits]);
+  }, [memberCode]);
 
   // Load existing profile picture when component mounts
   useEffect(() => {
@@ -2492,7 +2503,7 @@ function MemberDashboardContent() {
                            
                     <div className="rounded-xl border p-4">
                       <h2 className="font-semibold mb-2">Trust Bonds</h2>
-                      <TBList />
+                      <TBList memberCode={memberCode} trustBonds={trustBonds} />
                 </div>
                                
                     <div className="rounded-xl border p-4">
@@ -2664,7 +2675,7 @@ function MemberDashboardContent() {
                           </div>
                           </div>
               <div className='space-y-4'>
-                {memberData?.sponsorName && memberData?.sponsorName !== 'Admin' ? (
+                {memberData?.sponsorName ? (
                   <div className='bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4'>
                     <div className='flex items-center space-x-3'>
                       <div className='w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg'>
@@ -2682,6 +2693,17 @@ function MemberDashboardContent() {
                         <h3 className='font-semibold text-gray-800'>{memberData.sponsorName}</h3>
                         <p className='text-sm text-gray-600'>Your Sponsor</p>
                         <p className='text-xs text-gray-500'>Member Code: {memberData.sponsorMemberCode}</p>
+                        <div className='mt-2 space-y-1'>
+                          <p className='text-xs text-gray-500'>
+                            <span className='font-medium'>Status:</span> {memberData.sponsorStatus || 'Active'}
+                          </p>
+                          <p className='text-xs text-gray-500'>
+                            <span className='font-medium'>Created:</span> {memberData.sponsorCreated ? new Date(memberData.sponsorCreated).toLocaleDateString() : 'Unknown'}
+                          </p>
+                          <p className='text-xs text-gray-500'>
+                            <span className='font-medium'>Last Active:</span> {memberData.sponsorActive ? new Date(memberData.sponsorActive).toLocaleDateString() : 'Unknown'}
+                          </p>
+                        </div>
                 </div>
               </div>
                   </div>
@@ -2762,6 +2784,7 @@ function MemberDashboardContent() {
           )}
       </div>
       </div>
+      
       </div>
         );
       case 'network':
@@ -2778,7 +2801,7 @@ function MemberDashboardContent() {
                 </div>
               </div>
               <div className='space-y-4'>
-                {memberData?.sponsorName && memberData?.sponsorName !== 'Admin' ? (
+                {memberData?.sponsorName ? (
                   <div className='bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4'>
                     <div className='flex items-center space-x-3'>
                       <div className='w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg'>
@@ -2796,6 +2819,17 @@ function MemberDashboardContent() {
                         <h3 className='font-semibold text-gray-800'>{memberData.sponsorName}</h3>
                         <p className='text-sm text-gray-600'>Your Sponsor</p>
                         <p className='text-xs text-gray-500'>Member Code: {memberData.sponsorMemberCode}</p>
+                        <div className='mt-2 space-y-1'>
+                          <p className='text-xs text-gray-500'>
+                            <span className='font-medium'>Status:</span> {memberData.sponsorStatus || 'Active'}
+                          </p>
+                          <p className='text-xs text-gray-500'>
+                            <span className='font-medium'>Created:</span> {memberData.sponsorCreated ? new Date(memberData.sponsorCreated).toLocaleDateString() : 'Unknown'}
+                          </p>
+                          <p className='text-xs text-gray-500'>
+                            <span className='font-medium'>Last Active:</span> {memberData.sponsorActive ? new Date(memberData.sponsorActive).toLocaleDateString() : 'Unknown'}
+                          </p>
+                        </div>
                   </div>
                         </div>
                       </div>
@@ -2892,12 +2926,8 @@ function MemberDashboardContent() {
         );
       }
     } catch (error) {
-      // Log to error monitor
-      ErrorMonitor.getInstance().logError(error as Error, {
-        activeSection,
-        memberCode,
-        timestamp: new Date().toISOString()
-      });
+      // Log error to console
+      console.error('Render error:', error);
       
       console.error('🚨 RENDERCONTENT ERROR:', error);
       console.error('🚨 activeSection:', activeSection);
@@ -2947,8 +2977,7 @@ function MemberDashboardContent() {
   }
 
   // ? SHOW TRUST UNIT MODAL FIRST (if pending) - it's an interstitial!
-  // TEMP: Disable modal for testing
-  if (false && showTrustUnitModal && currentTrustUnit) {
+  if (showTrustUnitModal && currentTrustUnit) {
     return (
       <div className='min-h-screen bg-slate-50'>
         <TrustUnitModal
@@ -3197,12 +3226,8 @@ function MemberDashboardContent() {
                 CONNECT
               </button>
               <button
-                onClick={() => setActiveSection('network')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeSection === 'network'
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                onClick={() => window.location.href = `/network?memberCode=${memberCode}`}
+                className="px-4 py-2 rounded-lg font-medium transition-colors text-gray-600 hover:bg-gray-100"
               >
                 NETWORK
               </button>

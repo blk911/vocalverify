@@ -63,6 +63,67 @@ export async function POST(req: NextRequest) {
 
     await userRef.set(userData);
 
+    // ✅ FIX: Update matching invite status to 'matched'
+    try {
+      console.log('🔍 [USER-CREATE] Looking for matching invite...');
+      console.log('Phone:', phone.trim());
+      
+      // Find invite with matching phone number (both 'sent' and 'pending' status)
+      const invitesSnapshot = await db.collection('invites')
+        .where('phone', '==', phone.trim())
+        .where('status', 'in', ['sent', 'pending'])
+        .get();
+      
+      if (!invitesSnapshot.empty) {
+        const inviteDoc = invitesSnapshot.docs[0];
+        const inviteData = inviteDoc.data();
+        
+        console.log('✅ [USER-CREATE] Found matching invite:', inviteData.name);
+        
+        // Update invite status to 'matched'
+        await db.collection('invites').doc(inviteDoc.id).update({
+          status: 'matched',
+          inviteeId: memberCode,
+          matchedPhone: phone.trim(),
+          matchedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        
+        console.log('✅ [USER-CREATE] Updated invite status to matched');
+        
+        // ✅ NEW: Create TB prospect when invite is matched
+        try {
+          console.log('🔗 [USER-CREATE] Creating TB prospect...');
+          const tbProspectResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/trust-bonds/prospect`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fromMemberCode: inviteData.sponsorId || inviteData.sponsorMemberCode,
+              toMemberCode: memberCode,
+              message: `Trust bond prospect from ${inviteData.sponsorName}`,
+              type: 'sponsor'
+            }),
+          });
+          
+          if (tbProspectResponse.ok) {
+            const tbData = await tbProspectResponse.json();
+            console.log('✅ [USER-CREATE] TB prospect created:', tbData.prospectId);
+          } else {
+            console.log('⚠️ [USER-CREATE] TB prospect creation failed');
+          }
+        } catch (tbError) {
+          console.error('❌ [USER-CREATE] Error creating TB prospect:', tbError);
+        }
+      } else {
+        console.log('⚠️ [USER-CREATE] No matching invite found for phone:', phone.trim());
+      }
+    } catch (inviteError) {
+      console.error('❌ [USER-CREATE] Error updating invite status:', inviteError);
+      // Don't fail user creation if invite update fails
+    }
+
     return NextResponse.json({
       ok: true,
       message: 'User created successfully',

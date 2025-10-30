@@ -1,3 +1,4 @@
+﻿import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/firebaseAdmin';
 
@@ -57,3 +58,4 @@ export async function POST(req: Request) {
     );
   }
 }
+

@@ -1,0 +1,31 @@
+name: QA
+
+on: [push, pull_request]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: pnpm i -g pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Start app for E2E/API (adjust start cmd to your setup)
+      - run: pnpm build
+      - run: pnpm start &
+      - run: npx wait-on http://localhost:3000
+
+      # API tests
+      - run: pnpm run test:api
+
+      # E2E tests (HTML report artifact)
+      - run: pnpm run e2e || true
+      - run: pnpm run e2e:report
+      - uses: actions/upload-artifact@v4
+        with: { name: playwright-report, path: playwright-report }
+
+      # Optional: k6 smoke
+      - run: k6 run tests/load/member-dash.k6.js || true
+

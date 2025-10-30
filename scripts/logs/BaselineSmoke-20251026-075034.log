@@ -1,0 +1,31 @@
+﻿[2025-10-26T07:50:35] STEP: Ensuring dev server is running at http://localhost:3000
+[2025-10-26T07:50:40] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:50:47] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:50:54] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:01] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:08] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:15] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:22] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:29] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:36] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:38] WARN: Dev server not responding; attempting to start via 'pnpm dev'…
+[2025-10-26T07:51:38] Started 'pnpm dev' detached.
+[2025-10-26T07:51:43] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:50] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:51:57] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:04] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:11] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:18] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:25] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:32] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:39] HTTP ERROR GET http://localhost:3000/api/health :: The operation has timed out.
+[2025-10-26T07:52:41] FAIL: Harness crashed: Dev server not reachable at http://localhost:3000 after 60 seconds.
+[2025-10-26T07:52:41] STACK: Dev server not reachable at http://localhost:3000 after 60 seconds.
+At line:24 char:3
++   throw "Dev server not reachable at $BaseUrl after $HealthTimeoutSec ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Dev server not ...ter 60 seconds.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Dev server not reachable at http://localhost:3000 after 60 seconds.
+ 
+
+[2025-10-26T07:52:41] FAIL: Baseline Smoke: RED — Passed=0 Failed=1 (log: BaselineSmoke-20251026-075034.log)

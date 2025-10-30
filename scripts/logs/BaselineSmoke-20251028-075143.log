@@ -1,0 +1,35 @@
+﻿[2025-10-28T07:51:43] STEP: Ensuring dev server is running at http://localhost:3000
+[2025-10-28T07:51:44] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:44] OK: Dev server is online.
+[2025-10-28T07:51:44] STEP: Ping core routes
+[2025-10-28T07:51:44] HTTP ERROR GET http://localhost:3000/ :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:44] FAIL: GET / failed
+[2025-10-28T07:51:44] HTTP ERROR GET http://localhost:3000/member-dashboard?memberCode=demo :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:44] FAIL: GET /member-dashboard?memberCode=demo failed
+[2025-10-28T07:51:44] HTTP ERROR GET http://localhost:3000/admin-dashboard :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:44] FAIL: GET /admin-dashboard failed
+[2025-10-28T07:51:44] HTTP ERROR GET http://localhost:3000/dash/profile :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:44] FAIL: GET /dash/profile failed
+[2025-10-28T07:51:44] STEP: Invite → /api/invites/send
+[2025-10-28T07:51:45] HTTP ERROR POST http://localhost:3000/api/invites/send :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:45] FAIL: Invite send failed
+[2025-10-28T07:51:45] FAIL: Invite identifiers missing
+[2025-10-28T07:51:45] STEP: Member Accept → /api/invites/accept (fallback /api/members/accept)
+[2025-10-28T07:51:45] HTTP ERROR POST http://localhost:3000/api/invites/accept :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:45] WARN: accept fallback → /api/members/accept
+[2025-10-28T07:51:45] HTTP ERROR POST http://localhost:3000/api/members/accept :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:45] FAIL: Member accept failed
+[2025-10-28T07:51:45] FAIL: Member identifiers missing
+[2025-10-28T07:51:45] STEP: Trust Bond → /api/trust/bonds
+[2025-10-28T07:51:45] HTTP ERROR POST http://localhost:3000/api/trust/bonds :: The remote server returned an error: (500) Internal Server Error.
+[2025-10-28T07:51:45] FAIL: TB creation failed
+[2025-10-28T07:51:45] FAIL: Harness crashed: Cannot bind argument to parameter 'cond' because it is null.
+[2025-10-28T07:51:45] STACK: Assert : Cannot bind argument to parameter 'cond' because it is null.
+At C:\Users\blk91\amihuman\scripts\BaselineSmoke.ps1:139 char:10
++   Assert $tbId "TB id captured" "TB id missing"
++          ~~~~~
+    + CategoryInfo          : InvalidData: (:) [Assert], ParameterBindingValidationException
+    + FullyQualifiedErrorId : ParameterArgumentValidationErrorNullNotAllowed,Assert
+ 
+
+[2025-10-28T07:51:45] FAIL: Baseline Smoke: RED — Passed=0 Failed=10 (log: BaselineSmoke-20251028-075143.log)

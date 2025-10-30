@@ -1,0 +1,50 @@
+﻿[2025-10-26T08:11:49] STEP: Ensuring dev server is running at http://localhost:3000
+[2025-10-26T08:11:53] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:11:59] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:06] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:12] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:18] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:24] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:30] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:36] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:42] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:48] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-26T08:12:50] WARN: Dev server not responding; attempting to start via 'pnpm dev'…
+[2025-10-26T08:12:50] Started 'pnpm dev' detached.
+[2025-10-26T08:12:55] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:12:57] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:12:59] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:01] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:03] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:05] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:07] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:09] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:11] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:13] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:15] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:17] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:19] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:21] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:24] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:26] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:28] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:30] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:32] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:34] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:36] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:38] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:40] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:42] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:44] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:46] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:48] HTTP ERROR GET http://localhost:3000/api/health :: The remote server returned an error: (404) Not Found.
+[2025-10-26T08:13:50] FAIL: Harness crashed: Dev server not reachable at http://localhost:3000 after 60 seconds.
+[2025-10-26T08:13:50] STACK: Dev server not reachable at http://localhost:3000 after 60 seconds.
+At C:\Users\blk91\AMIHUMAN\scripts\BaselineSmoke.ps1:84 char:3
++   throw "Dev server not reachable at $BaseUrl after $HealthTimeoutSec ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Dev server not ...ter 60 seconds.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Dev server not reachable at http://localhost:3000 after 60 seconds.
+ 
+
+[2025-10-26T08:13:50] FAIL: Baseline Smoke: RED — Passed=0 Failed=1 (log: BaselineSmoke-20251026-081149.log)

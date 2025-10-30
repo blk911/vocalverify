@@ -10,15 +10,15 @@ export async function POST(request: NextRequest) {
     console.log('\n🔥🔥🔥 [QR-GENERATE] API CALLED 🔥🔥🔥');
 
     const body = await request.json();
-    const { inviteId, inviteeName, inviteePhone, inviterName, inviterCode } =
+    const { inviteId, invitedName, invitedPhone, sponsorName, sponsorMemberCode } =
       body;
 
     console.log('[QR-GENERATE] Request:', {
       inviteId,
-      inviteeName,
-      inviteePhone,
-      inviterName,
-      inviterCode,
+      invitedName,
+      invitedPhone,
+      sponsorName,
+      sponsorMemberCode,
     });
 
     if (!inviteId) {

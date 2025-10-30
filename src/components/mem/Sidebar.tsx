@@ -28,6 +28,7 @@ export default function Sidebar({
   return (
     <div
       className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white shadow-lg h-full transition-all duration-300`}
+      data-testid="sidebar"
     >
       <div className='p-6'>
         {/* Collapse/Expand Button */}
@@ -56,8 +57,27 @@ export default function Sidebar({
               <div key={item.id}>
                 <button
                   onClick={() => {
-                    onSectionChange?.(item.id);
-                    if (isVaultItem) setIsVaultMenuOpen(true);
+                    // Navigate to actual pages instead of just changing sections
+                    const memberCode = new URLSearchParams(window.location.search).get('memberCode') || '';
+                    const baseUrl = memberCode ? `?memberCode=${memberCode}` : '';
+                    
+                    switch (item.id) {
+                      case 'overview':
+                        window.location.href = `/member-dashboard${baseUrl}`;
+                        break;
+                      case 'vaults':
+                        window.location.href = `/vaults${baseUrl}`;
+                        break;
+                      case 'profile':
+                        window.location.href = `/profile${baseUrl}`;
+                        break;
+                      case 'settings':
+                        window.location.href = `/settings${baseUrl}`;
+                        break;
+                      default:
+                        onSectionChange?.(item.id);
+                        if (isVaultItem) setIsVaultMenuOpen(true);
+                    }
                   }}
                   className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'} px-4 py-3 rounded-lg text-left transition-colors ${
                     isActive

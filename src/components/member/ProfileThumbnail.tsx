@@ -91,6 +91,13 @@ export default function ProfileThumbnail({
             src={profilePicture}
             alt={`${memberName} profile`}
             className='w-full h-full object-cover'
+            style={{ 
+              maxWidth: '100%', 
+              maxHeight: '100%', 
+              width: '100%', 
+              height: '100%',
+              objectFit: 'cover'
+            }}
           />
         ) : (
           <div className='w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center'>

@@ -1,0 +1,35 @@
+﻿[2025-10-30T07:38:44] STEP: Ensuring dev server is running at http://localhost:3000
+[2025-10-30T07:38:48] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-30T07:38:48] OK: Dev server is online.
+[2025-10-30T07:38:48] STEP: Ping core routes
+[2025-10-30T07:38:52] HTTP ERROR GET http://localhost:3000/ :: Unable to connect to the remote server
+[2025-10-30T07:38:52] FAIL: GET / failed
+[2025-10-30T07:38:56] HTTP ERROR GET http://localhost:3000/member-dashboard?memberCode=demo :: Unable to connect to the remote server
+[2025-10-30T07:38:56] FAIL: GET /member-dashboard?memberCode=demo failed
+[2025-10-30T07:39:00] HTTP ERROR GET http://localhost:3000/admin-dashboard :: Unable to connect to the remote server
+[2025-10-30T07:39:00] FAIL: GET /admin-dashboard failed
+[2025-10-30T07:39:04] HTTP ERROR GET http://localhost:3000/dash/profile :: Unable to connect to the remote server
+[2025-10-30T07:39:04] FAIL: GET /dash/profile failed
+[2025-10-30T07:39:04] STEP: Invite → /api/invites/send
+[2025-10-30T07:39:08] HTTP ERROR POST http://localhost:3000/api/invites/send :: Unable to connect to the remote server
+[2025-10-30T07:39:08] FAIL: Invite send failed
+[2025-10-30T07:39:08] FAIL: Invite identifiers missing
+[2025-10-30T07:39:08] STEP: Member Accept → /api/invites/accept (fallback /api/members/accept)
+[2025-10-30T07:39:13] HTTP ERROR POST http://localhost:3000/api/invites/accept :: Unable to connect to the remote server
+[2025-10-30T07:39:13] WARN: accept fallback → /api/members/accept
+[2025-10-30T07:39:17] HTTP ERROR POST http://localhost:3000/api/members/accept :: Unable to connect to the remote server
+[2025-10-30T07:39:17] FAIL: Member accept failed
+[2025-10-30T07:39:17] FAIL: Member identifiers missing
+[2025-10-30T07:39:17] STEP: Trust Bond → /api/trust/bonds
+[2025-10-30T07:39:21] HTTP ERROR POST http://localhost:3000/api/trust/bonds :: Unable to connect to the remote server
+[2025-10-30T07:39:21] FAIL: TB creation failed
+[2025-10-30T07:39:21] FAIL: Harness crashed: Cannot bind argument to parameter 'cond' because it is null.
+[2025-10-30T07:39:21] STACK: Assert : Cannot bind argument to parameter 'cond' because it is null.
+At C:\Users\blk91\amihuman\scripts\BaselineSmoke.ps1:139 char:10
++   Assert $tbId "TB id captured" "TB id missing"
++          ~~~~~
+    + CategoryInfo          : InvalidData: (:) [Assert], ParameterBindingValidationException
+    + FullyQualifiedErrorId : ParameterArgumentValidationErrorNullNotAllowed,Assert
+ 
+
+[2025-10-30T07:39:21] FAIL: Baseline Smoke: RED — Passed=0 Failed=10 (log: BaselineSmoke-20251030-073844.log)

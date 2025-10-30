@@ -10,3 +10,7 @@ dist/
 .turbo/
 __pycache__/
 *.pyc
+
+service-account.json
+
+service-account.json

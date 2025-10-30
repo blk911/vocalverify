@@ -1,425 +1,98 @@
 ﻿'use client';
-import { useState, useEffect } from 'react';
-import { deviceFingerprint } from '@/lib/deviceFingerprint';
-import { toProperCase, validateFullName } from '@/utils/nameUtils';
+
+import { useEffect, useState } from 'react';
+import ConnectSummary from '@/components/connect/ConnectSummary';
+import PendingInvitesPanel from '@/components/connect/PendingInvitesPanel';
+import SentInvitesPanel from '@/components/connect/SentInvitesPanel';
+import RecentConnections from '@/components/connect/RecentConnections';
 
 export default function ConnectPage() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [showPhoneCapture, setShowPhoneCapture] = useState(false);
-  const [hasInvite, setHasInvite] = useState(false); // Track if user has invite
-  const [phone, setPhone] = useState('');
-  const [showThankYou, setShowThankYou] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const [memberCode, setMemberCode] = useState<string | null>(null);
 
-  // ✅ Prevent hydration mismatch by only rendering after mount
   useEffect(() => {
-    setIsMounted(true);
+    try {
+      const mc = localStorage.getItem('memberCode');
+      if (mc) setMemberCode(mc);
+    } catch {}
   }, []);
 
-  // ✅ Pre-fill phone from invite when phone capture modal opens
-  const formatPhoneNumber = (value: string) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length >= 6) {
-      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-    } else if (digits.length >= 3) {
-      return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-    } else if (digits.length > 0) {
-      return `(${digits}`;
-    }
-    return digits;
-  };
+  return (
+    <main className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Connect</h1>
+          <p className="text-sm text-gray-500">
+            Manage your sponsor, invitations, and one-to-one connections.
+          </p>
+        </div>
+        <ConnectSummary memberCode={memberCode ?? undefined} />
+      </header>
+
+      {/* Sponsor card (read-only, quick sanity) */}
+      <section className="rounded-2xl border p-4 bg-white">
+        <h2 className="text-lg font-medium mb-3">Sponsor</h2>
+        <SponsorMini memberCode={memberCode ?? undefined} />
+      </section>
+
+      {/* Invitations */}
+      <section className="grid md:grid-cols-2 gap-6">
+        <PendingInvitesPanel />
+        <SentInvitesPanel />
+      </section>
+
+      {/* Recently accepted (last few 1:1 bonds) */}
+      <section className="rounded-2xl border p-4 bg-white">
+        <h2 className="text-lg font-medium mb-3">Recent Connections</h2>
+        <RecentConnections />
+      </section>
+    </main>
+  );
+}
+
+/** Tiny sponsor display that reads current sponsor from your user profile API */
+function SponsorMini({ memberCode }: { memberCode?: string }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (showPhoneCapture) {
-      const pendingInviteStr = sessionStorage.getItem('pendingInvite');
-      if (pendingInviteStr) {
-        const pendingInvite = JSON.parse(pendingInviteStr);
-        if (pendingInvite.phone) {
-          const formatted = formatPhoneNumber(pendingInvite.phone);
-          setPhone(formatted);
-          console.log('✅ Pre-filled phone from invite:', formatted);
-        }
+    let abort = false;
+    (async () => {
+      try {
+        // Try to get memberCode from localStorage first
+        const memberCode = localStorage.getItem('memberCode') || 'demo';
+        const res = await fetch(`/api/user/profile?memberCode=${memberCode}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error('profile fetch failed');
+        const j = await res.json();
+        if (!abort) setData(j);
+      } catch (e) {
+        console.warn('Profile fetch failed, using fallback data:', e);
+        if (!abort) setData({ sponsor: null });
+      } finally {
+        if (!abort) setLoading(false);
       }
-    }
-  }, [showPhoneCapture]);
+    })();
+    return () => { abort = true; };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
+  if (loading) return <p className="text-sm text-gray-500">Loading sponsor…</p>;
+  const sponsor = data?.sponsor ?? null;
 
-    // Validate both names are provided
-    if (!firstName.trim() || !lastName.trim()) {
-      setError('Both first name and last name are required');
-      setIsLoading(false);
-      return;
-    }
-
-    if (firstName.trim().length < 2 || lastName.trim().length < 2) {
-      setError('Both first name and last name must be at least 2 characters');
-      setIsLoading(false);
-      return;
-    }
-
-    // Concatenate and normalize to proper case
-    const rawName = `${firstName.trim()} ${lastName.trim()}`;
-    const fullName = toProperCase(rawName);
-
-    console.log('🔤 Name normalization:', { input: rawName, output: fullName });
-
-    try {
-      // Send device fingerprint for security
-      await deviceFingerprint.sendFingerprint(fullName);
-
-      console.log('\n🔥 [CONNECT] Calling check-with-invite API...');
-      const response = await fetch(
-        `/api/user/check-with-invite?name=${encodeURIComponent(fullName)}`
-      );
-      const data = await response.json();
-
-      console.log('\n🔥 [CONNECT] API RESPONSE RECEIVED 🔥');
-      console.log('[CONNECT] data.exists:', data.exists);
-      console.log('[CONNECT] data.hasInvite:', data.hasInvite);
-      console.log('[CONNECT] data.invite?.sponsorId:', data.invite?.sponsorId);
-      console.log('[CONNECT] Full response:', JSON.stringify(data, null, 2));
-
-      if (response.ok) {
-        // CORRECTED 3-PATH LOGIC - USER ONLY ENTERS FIRST/LAST NAME
-        if (data.exists && data.user) {
-          // PATH 1: Existing user found → redirect to dashboard
-          const memberCode = data.user.memberCode || data.user.phone;
-          window.location.href = `/welcome-back?name=${encodeURIComponent(fullName)}&status=registered&memberCode=${memberCode}`;
-        } else if (data.hasInvite && data.invite) {
-          // PATH 2: Has pending invite → ALWAYS show phone confirmation modal
-          console.log(
-            '\n🔥🔥🔥 [CONNECT] INVITE FOUND - SHOWING PHONE MODAL 🔥🔥🔥'
-          );
-          console.log('[CONNECT] Invite details:', {
-            id: data.invite.id,
-            name: data.invite.name,
-            phone: data.invite.phone,
-            sponsorId: data.invite.sponsorId,
-            sponsorName: data.invite.sponsorName,
-          });
-          console.log('[CONNECT] Storing invite in sessionStorage');
-          sessionStorage.setItem('pendingInvite', JSON.stringify(data.invite));
-          setHasInvite(true);
-          setShowPhoneCapture(true);
-        } else {
-          // PATH 3: NOT_REG - Name not found and no invite → Show phone capture
-          setHasInvite(false);
-          setShowPhoneCapture(true);
-        }
-      } else {
-        setError(data.error || 'Failed to check name');
-      }
-    } catch (error) {
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setPhone(formatted);
-  };
-
-  const handlePhoneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-
-    try {
-      // Store phone number in database
-      const phoneDigits = phone.replace(/\D/g, '');
-      const fullName = `${firstName.trim()} ${lastName.trim()}`;
-
-      // Check if there's a pending invite
-      const pendingInviteStr = sessionStorage.getItem('pendingInvite');
-      const pendingInvite = pendingInviteStr
-        ? JSON.parse(pendingInviteStr)
-        : null;
-
-      console.log('\n🔥🔥🔥 [CONNECT] SUBMITTING PHONE 🔥🔥🔥');
-      console.log('[CONNECT] Phone capture request:', {
-        name: fullName,
-        phone: phoneDigits,
-        hasInvite: !!pendingInvite,
-        inviteId: pendingInvite?.id,
-        sponsorId: pendingInvite?.sponsorId,
-      });
-
-      const response = await fetch('/api/user/capture-phone', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: fullName,
-          phone: phoneDigits,
-          inviteId: pendingInvite?.id,
-        }),
-      });
-
-      const data = await response.json();
-      console.log('\n🔥 [CONNECT] PHONE CAPTURE RESPONSE 🔥');
-      console.log('[CONNECT] Response status:', response.status);
-      console.log('[CONNECT] Response data:', data);
-      console.log('[CONNECT] User created?', !!data.user);
-      console.log('[CONNECT] User memberCode:', data.user?.memberCode);
-
-      if (response.ok) {
-        // Clear pending invite from session
-        sessionStorage.removeItem('pendingInvite');
-
-        if (data.hasInvite && data.user) {
-          // User created from invite - redirect to complete registration
-          console.log('\n🔥🔥🔥 [CONNECT] USER CREATED - REDIRECTING 🔥🔥🔥');
-          console.log('[CONNECT] Redirect URL: /complete-registration');
-          console.log('[CONNECT] memberCode:', data.user.memberCode);
-          console.log('[CONNECT] autoPhone: true');
-          // ✅ FIX: Add autoPhone=true since phone was already captured on this page
-          window.location.href = `/complete-registration?memberCode=${data.user.memberCode}&name=${encodeURIComponent(fullName)}&autoPhone=true`;
-        } else {
-          // No invite - show thank you modal
-          console.log('✅ Phone captured successfully');
-          setShowThankYou(true);
-        }
-      } else {
-        console.error('❌ Phone capture failed:', data);
-        // Handle phone mismatch error specially
-        if (data.code === 'PHONE_MISMATCH' && data.expectedPhone) {
-          const formatted = formatPhoneNumber(data.expectedPhone);
-          setError(
-            `This invitation is for phone number ${formatted}. Please use that number to continue.`
-          );
-          // Reset phone to the expected value
-          setPhone(formatted);
-        } else {
-          setError(
-            data.error || 'Failed to submit phone number. Please try again.'
-          );
-        }
-      }
-    } catch (error) {
-      console.error('❌ Phone capture error:', error);
-      setError('Failed to submit phone number. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleThankYouClose = () => {
-    setShowThankYou(false);
-    // Redirect to home page
-    window.location.href = '/';
-  };
-
-  // STEP 3: Thank you modal
-  if (showThankYou) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
-        <div className='bg-white p-8 rounded-lg shadow-lg w-full max-w-md text-center'>
-          <div className='text-green-500 text-6xl mb-4'>✅</div>
-          <h1 className='text-2xl font-bold text-gray-800 mb-4'>Thank You!</h1>
-          <p className='text-gray-600 mb-6'>
-            We have your information, we'll be in touch.
-          </p>
-          <button
-            onClick={handleThankYouClose}
-            className='w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500'
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // STEP 2: Phone capture
-  if (showPhoneCapture) {
-    // Use state instead of sessionStorage to prevent race condition
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
-        <div className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'>
-          <h1 className='text-2xl font-bold text-center text-gray-800 mb-2'>
-            {hasInvite ? '🎉 Complete Your Registration' : 'Name NOT FOUND!'}
-          </h1>
-          <p className='text-center text-gray-600 mb-6'>
-            {hasInvite
-              ? 'Enter your phone number to complete registration'
-              : "Enter your phone and we'll be in touch"}
-          </p>
-
-          <form onSubmit={handlePhoneSubmit} className='space-y-6'>
-            <div suppressHydrationWarning>
-              <label
-                htmlFor='phone'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                PHONE NUMBER *
-              </label>
-              {hasInvite && phone && (
-                <p className='text-sm text-blue-600 mb-2'>
-                  ✓ This is the phone number from your invitation. Please
-                  confirm it's correct.
-                </p>
-              )}
-              <input
-                type='tel'
-                id='phone'
-                value={phone}
-                onChange={handlePhoneChange}
-                placeholder='(555) 123-4567'
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                required
-              />
-            </div>
-
-            {error && (
-              <p className='text-red-500 text-sm text-center'>{error}</p>
-            )}
-
-            <button
-              type='submit'
-              className='w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400'
-              disabled={isLoading || !phone.trim()}
-            >
-              {isLoading ? 'Submitting...' : 'Submit'}
-            </button>
-          </form>
-
-          <div className='mt-6 text-center'>
-            <button
-              onClick={() => {
-                setShowPhoneCapture(false);
-                setHasInvite(false); // Reset invite state
-              }}
-              className='text-blue-600 hover:text-blue-800 text-sm'
-            >
-              ← Try Different Name
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ✅ Prevent hydration mismatch by only rendering after mount
-  if (!isMounted) {
-    return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
-        <div className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'>
-          <div className='animate-pulse'>
-            <div className='h-8 bg-gray-200 rounded mb-6'></div>
-            <div className='space-y-4'>
-              <div className='h-4 bg-gray-200 rounded'></div>
-              <div className='h-10 bg-gray-200 rounded'></div>
-              <div className='h-4 bg-gray-200 rounded'></div>
-              <div className='h-10 bg-gray-200 rounded'></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // STEP 1: Name entry form
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gray-100 p-4'>
-      <div
-        className='bg-white p-8 rounded-lg shadow-md w-full max-w-md'
-        suppressHydrationWarning={true}
-      >
-        <h1 className='text-2xl font-bold text-center text-gray-800 mb-6'>
-          Connect to AM I HUMAN.net
-        </h1>
-        <form
-          onSubmit={handleSubmit}
-          className='space-y-6'
-          suppressHydrationWarning={true}
-        >
-          <div
-            className='grid grid-cols-2 gap-4'
-            suppressHydrationWarning={true}
-          >
-            <div suppressHydrationWarning={true}>
-              <label
-                htmlFor='firstName'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                FIRST NAME *
-              </label>
-              <input
-                type='text'
-                id='firstName'
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='First name'
-                required
-                minLength={2}
-              />
-            </div>
-            <div suppressHydrationWarning>
-              <label
-                htmlFor='lastName'
-                className='block text-sm font-medium text-gray-700 mb-2'
-              >
-                LAST NAME *
-              </label>
-              <input
-                type='text'
-                id='lastName'
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                className='w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500'
-                placeholder='Last name'
-                required
-                minLength={2}
-              />
-            </div>
+    <div className="rounded-xl border p-4 bg-gradient-to-br from-indigo-50 to-white">
+      {sponsor ? (
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="font-medium">{sponsor.name ?? 'Your Sponsor'}</div>
+            <div className="text-xs text-gray-500">Member Code: {sponsor.memberCode ?? '—'}</div>
+            <div className="text-xs text-gray-500">Status: {sponsor.status ?? 'Active'}</div>
           </div>
-
-          {error && <p className='text-red-500 text-sm text-center'>{error}</p>}
-
-          <button
-            type='submit'
-            className='w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400'
-            disabled={isLoading}
-          >
-            {isLoading ? 'Connecting...' : 'Enter'}
-          </button>
-        </form>
-
-        <div className='mt-6 text-center'>
-          <a href='/' className='text-blue-600 hover:text-blue-800 text-sm'>
-            ← Back to Home
-          </a>
+          <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+            👑 Sponsor
+          </span>
         </div>
-
-        {/* Temporary Admin and Site Wide Member Dash links */}
-        <div className='mt-8 pt-6 border-t border-gray-200'>
-          <div className='text-center space-y-2'>
-            <a
-              href='/admin-dashboard'
-              className='block text-sm text-gray-600 hover:text-blue-600'
-            >
-              🔧 Admin Dashboard
-            </a>
-            <a
-              href='/member-dashboard?memberCode=demo'
-              className='block text-sm text-gray-600 hover:text-blue-600'
-            >
-              👥 Site Wide Member Dash
-            </a>
-          </div>
-        </div>
-      </div>
+      ) : (
+        <div className="text-sm text-gray-600">No sponsor on file.</div>
+      )}
     </div>
   );
 }

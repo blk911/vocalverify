@@ -65,24 +65,24 @@ export const REQUIRED_APIS = {
   },
 
   // Trust Units APIs
-  'trust-units.list': {
+  'trust.units.list': {
     method: 'GET',
     params: ['memberCode'],
     returns: 'TrustUnitsResponse',
   },
-  'trust-units.connect': {
+  'trust.units.connect': {
     method: 'POST',
     params: ['unitId', 'memberCode'],
     returns: 'ConnectionResponse',
   },
-  'trust-units.wait': {
+  'trust.units.wait': {
     method: 'POST',
     params: ['unitId', 'memberCode'],
     returns: 'WaitResponse',
   },
 
   // Trust Bonds APIs
-  'trust-bonds.list': {
+  'trust.bonds.list': {
     method: 'GET',
     params: ['memberCode'],
     returns: 'TrustBondsResponse',
@@ -116,7 +116,7 @@ export function createApiCall<T extends ApiKey>(
   }
 
   // Build URL with params
-  const baseUrl = `/api/${endpoint.replace('.', '/')}`;
+  const baseUrl = `/api/${endpoint.replace(/\./g, '/')}`;
   const url = new URL(baseUrl, window.location.origin);
 
   Object.entries(params).forEach(([key, value]) => {
@@ -171,10 +171,10 @@ export const apiCalls = {
     createApiCall('user.upload-picture', { memberCode, picture }),
 
   getTrustUnits: (memberCode: string) =>
-    createApiCall('trust-units.list', { memberCode }),
+    createApiCall('trust.units.list', { memberCode }),
 
   getTrustBonds: (memberCode: string) =>
-    createApiCall('trust-bonds.list', { memberCode }),
+    createApiCall('trust.bonds.list', { memberCode }),
 
   getAdminStats: () => createApiCall('admin.stats', {}),
 

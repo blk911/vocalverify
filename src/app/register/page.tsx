@@ -10,11 +10,24 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Get name from URL params
+    // Get data from URL params
     const urlParams = new URLSearchParams(window.location.search);
     const nameParam = urlParams.get('name');
+    const phoneParam = urlParams.get('phone');
+    const inviteIdParam = urlParams.get('inviteId');
+    
     if (nameParam) {
       setName(nameParam);
+    }
+    
+    if (phoneParam) {
+      setPhone(formatPhoneNumber(phoneParam));
+    }
+    
+    // If we have an inviteId, we're coming from an invite link
+    if (inviteIdParam) {
+      console.log('Registration from invite:', inviteIdParam);
+      // TODO: Could fetch invite data here if needed
     }
   }, []);
 

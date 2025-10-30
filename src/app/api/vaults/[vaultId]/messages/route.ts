@@ -1,114 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/firebaseAdmin';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ vaultId: string }> }
-) {
+export const runtime = 'nodejs';
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ vaultId: string }> }) {
   try {
     const { vaultId } = await params;
-    const { searchParams } = new URL(request.url);
+    const { searchParams } = new URL(req.url);
     const memberCode = searchParams.get('memberCode');
-    const limit = parseInt(searchParams.get('limit') || '50');
 
-    if (!memberCode) {
+    console.log('🔍 [VAULT-MESSAGES] Request:', { vaultId, memberCode });
+
+    if (!vaultId || !memberCode) {
+      console.log('❌ [VAULT-MESSAGES] Missing required params');
       return NextResponse.json(
-        {
-          ok: false,
-          error: 'Member code is required',
-        },
+        { ok: false, error: 'Vault ID and member code are required' },
         { status: 400 }
       );
     }
 
-    // Verify user has access to this vault
     const db = getDb();
+
+    // Verify vault exists and user has access
     const vaultDoc = await db.collection('vaults').doc(vaultId).get();
+    
     if (!vaultDoc.exists) {
+      console.log('❌ [VAULT-MESSAGES] Vault not found:', vaultId);
       return NextResponse.json(
-        {
-          ok: false,
-          error: 'Vault not found',
-        },
+        { ok: false, error: 'Vault not found' },
         { status: 404 }
       );
     }
 
     const vaultData = vaultDoc.data();
-    if (!vaultData?.participants?.includes(memberCode)) {
+    console.log('🔍 [VAULT-MESSAGES] Vault data:', vaultData);
+    
+    const hasAccess = vaultData?.participants?.includes(memberCode);
+    console.log('🔍 [VAULT-MESSAGES] Access check:', { 
+      participants: vaultData?.participants, 
+      memberCode, 
+      hasAccess 
+    });
+    
+    if (!hasAccess) {
+      console.log('❌ [VAULT-MESSAGES] Access denied');
       return NextResponse.json(
-        {
-          ok: false,
-          error: 'Access denied',
-        },
+        { ok: false, error: 'Access denied to vault' },
         { status: 403 }
       );
     }
 
     // Get messages for this vault
     const messagesSnapshot = await db
-      .collection('vaults')
-      .doc(vaultId)
       .collection('messages')
-      .orderBy('createdAt', 'desc')
-      .limit(limit)
+      .where('vaultId', '==', vaultId)
+      .orderBy('timestamp', 'asc')
       .get();
 
-    const messages = [];
+    const messages = messagesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      message: doc.data().message,
+      memberCode: doc.data().memberCode,
+      timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || doc.data().createdAt,
+      threadId: doc.data().threadId,
+    }));
 
-    for (const doc of messagesSnapshot.docs) {
-      const messageData = doc.data();
-
-      // Get sender details
-      let senderDetails = null;
-      try {
-        const senderDoc = await db
-          .collection('members')
-          .doc(messageData.senderId)
-          .get();
-        if (senderDoc.exists) {
-          const senderData = senderDoc.data();
-          senderDetails = {
-            memberCode: messageData.senderId,
-            name: senderData?.name || senderData?.displayName || 'Unknown',
-            profilePicture: senderData?.profilePicture || null,
-          };
-        }
-      } catch (error) {
-        console.error(`Error fetching sender ${messageData.senderId}:`, error);
-      }
-
-      messages.push({
-        id: doc.id,
-        senderId: messageData.senderId,
-        senderDetails,
-        messageType: messageData.messageType || 'text',
-        content: messageData.content,
-        mediaUrl: messageData.mediaUrl || null,
-        reactions: messageData.reactions || {},
-        editedAt: messageData.editedAt || null,
-        deletedAt: messageData.deletedAt || null,
-        createdAt: messageData.createdAt,
-        vaultId,
-      });
-    }
-
-    // Reverse to get chronological order
-    messages.reverse();
+    console.log(`[VAULT-MESSAGES] Loaded ${messages.length} messages for vault ${vaultId}`);
 
     return NextResponse.json({
       ok: true,
+      vaultId,
       messages,
       count: messages.length,
-      vaultId,
     });
-  } catch (error) {
-    console.error('Error fetching messages:', error);
+  } catch (error: any) {
+    console.error('Get vault messages error:', error);
     return NextResponse.json(
-      {
-        ok: false,
-        error: 'Failed to fetch messages',
-      },
+      { ok: false, error: 'Failed to get vault messages' },
       { status: 500 }
     );
   }

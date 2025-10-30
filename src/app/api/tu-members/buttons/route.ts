@@ -1,3 +1,4 @@
+﻿import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/firebaseAdmin';
 
@@ -34,11 +35,11 @@ export async function GET(request: NextRequest) {
     const tuData = tuDoc.data();
     const memberCodes = tuData?.memberCodes || [];
 
-    console.log('🔍 TU Member Codes:', memberCodes);
+    console.log('ðŸ” TU Member Codes:', memberCodes);
 
     // Remove duplicates and get member details for each unique member code
     const uniqueMemberCodes = [...new Set(memberCodes)]; // Remove duplicates
-    console.log('🔍 Unique Member Codes:', uniqueMemberCodes);
+    console.log('ðŸ” Unique Member Codes:', uniqueMemberCodes);
 
     const memberButtons = await Promise.all(
       uniqueMemberCodes.map(async memberCode => {
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     // Filter out null results
     const validMembers = memberButtons.filter(member => member !== null);
-    console.log('🔍 Valid Members:', validMembers.length, validMembers);
+    console.log('ðŸ” Valid Members:', validMembers.length, validMembers);
 
     return NextResponse.json({
       ok: true,
@@ -86,3 +87,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+

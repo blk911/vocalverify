@@ -1,3 +1,4 @@
+﻿import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/firebaseAdmin';
 import { normalizeName } from '@/utils/nameUtils';
@@ -6,7 +7,7 @@ export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, phone, message } = await req.json();
+    const { name, phone, sponsorId, sponsorName } = await req.json();
 
     if (!name || !phone) {
       return NextResponse.json(
@@ -31,9 +32,9 @@ export async function POST(req: NextRequest) {
       name: properName,
       nameLower: nameLower,
       phone: phone.trim(),
-      message: message || "Hello! You've been invited to join our network.",
-      sponsorId: '0000000000',
-      sponsorName: 'Admin',
+      message: "Hello! You've been invited to join our network.",
+      sponsorId: sponsorId || '0000000000',
+      sponsorName: sponsorName || 'Admin',
       status: 'pending',
       createdAt: new Date().toISOString(),
       inviteId: `admin_invite_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[ADMIN-SEND-INVITATION] Created invite:', inviteRef.id);
 
-    // ⚡ CRITICAL: Check if this name exists in notFoundRegistry
+    // âš¡ CRITICAL: Check if this name exists in notFoundRegistry
     const nfSnapshot = await db
       .collection('notFoundRegistry')
       .where('nameLower', '==', nameLower)
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     if (!nfSnapshot.empty) {
       const nfDoc = nfSnapshot.docs[0];
       console.log(
-        '[ADMIN-SEND-INVITATION] ⚡ MATCH FOUND in notFoundRegistry:',
+        '[ADMIN-SEND-INVITATION] âš¡ MATCH FOUND in notFoundRegistry:',
         nfDoc.id
       );
 
@@ -65,29 +66,24 @@ export async function POST(req: NextRequest) {
         status: 'invited',
         invitedAt: new Date().toISOString(),
         inviteId: inviteRef.id,
-        invitedBy: 'admin',
       });
 
       console.log(
-        '[ADMIN-SEND-INVITATION] ✅ Updated notFoundRegistry status to "invited"'
+        '[ADMIN-SEND-INVITATION] âœ… Updated notFoundRegistry entry'
       );
-    } else {
-      console.log('[ADMIN-SEND-INVITATION] No matching notFoundRegistry entry');
     }
 
     return NextResponse.json({
       ok: true,
       message: 'Invitation sent successfully',
-      invite: {
-        id: inviteRef.id,
-        ...inviteData,
-      },
+      inviteId: inviteRef.id,
     });
   } catch (error: any) {
-    console.error('Error sending invitation:', error);
+    console.error('Admin send invitation error:', error);
     return NextResponse.json(
       { ok: false, error: 'Failed to send invitation' },
       { status: 500 }
     );
   }
 }
+

@@ -1,5 +1,4 @@
-import "../globals.css";     // site base styles
-import "./admin.css";        // admin-only styles
+import "../globals.css";     // consolidated CSS
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return <>{children}</>;

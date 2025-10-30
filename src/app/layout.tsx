@@ -1,19 +1,17 @@
-﻿import './globals.css';
+﻿import "./globals.css";
+import type { Metadata } from "next";
 
-export const metadata = { title: "Simple Next", description: "Minimal starter" };
+export const metadata: Metadata = {
+  title: "AM I HUMAN",
+  description: "amihuman.net",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
-      <body className="font-sans m-0 bg-gray-100" suppressHydrationWarning={true}>
+      <body className="min-h-screen text-gray-900 antialiased">
         {children}
       </body>
     </html>
   );
 }
-
-
-

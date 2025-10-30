@@ -1,78 +1,97 @@
-import 'server-only';
-import type { App } from 'firebase-admin/app';
-import { cert, getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
-import {
-  getStorage as getFirebaseStorage,
-  type Storage,
-} from 'firebase-admin/storage';
-import { initializeProductionConfig } from './productionConfig';
-import { autoInitializeDatabase } from './databaseInit';
+﻿import admin from "firebase-admin";
 
+/** keep admin app singleton in dev */
 declare global {
-  // eslint-disable-next-line no-var, camelcase
-  var __vv_admin_app__: App | undefined;
-  // eslint-disable-next-line no-var, camelcase
-  var __vv_admin_db__: Firestore | undefined;
-  // eslint-disable-next-line no-var, camelcase
-  var __vv_admin_storage__: Storage | undefined;
+  // eslint-disable-next-line no-var
+  var __FBA_APP__: admin.app.App | undefined;
 }
 
-function need(name: string): string {
-  const v = process.env[name];
-  if (!v || !v.trim()) throw new Error(`[firebaseAdmin] Missing env ${name}`);
-  return v;
-}
-function normalizeKey(k: string) {
-  if (
-    (k.startsWith('"') && k.endsWith('"')) ||
-    (k.startsWith("'") && k.endsWith("'"))
-  )
-    k = k.slice(1, -1);
-  return k.replace(/\\n/g, '\n');
-}
-
-export function getDb(): Firestore {
-  if (globalThis.__vv_admin_db__) return globalThis.__vv_admin_db__!;
-
-  // Initialize production configuration
-  if (!initializeProductionConfig()) {
-    throw new Error('Failed to initialize production configuration');
+function initAdmin(): admin.app.App {
+  if (global.__FBA_APP__) return global.__FBA_APP__;
+  if (admin.apps.length) {
+    global.__FBA_APP__ = admin.app();
+    return global.__FBA_APP__;
   }
 
-  if (!getApps().length && !globalThis.__vv_admin_app__) {
-    // Use individual environment variables
-    const projectId = need('FIREBASE_PROJECT_ID');
-    const clientEmail = need('FIREBASE_CLIENT_EMAIL');
-    const privateKey = normalizeKey(need('FIREBASE_PRIVATE_KEY'));
-    const app = initializeApp({
-      credential: cert({ projectId, clientEmail, privateKey }),
+  const projectId =
+    process.env.GCLOUD_PROJECT ||
+    process.env.FIREBASE_PROJECT_ID ||
+    "amihuman-local";
+
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const emulatorHost = process.env.FIRESTORE_EMULATOR_HOST;
+
+  console.log('🔧 [FIREBASE-ADMIN] Initializing with:', {
+    projectId,
+    hasClientEmail: !!clientEmail,
+    hasPrivateKey: !!privateKey,
+    emulatorHost,
+    nodeEnv: process.env.NODE_ENV
+  });
+
+  // Check if we're using emulator
+  if (emulatorHost) {
+    console.log('🔧 [FIREBASE-ADMIN] Using Firestore emulator:', emulatorHost);
+    global.__FBA_APP__ = admin.initializeApp({
       projectId,
     });
-    globalThis.__vv_admin_app__ = app;
+    
+    // Configure emulator settings
+    const fs = admin.firestore(global.__FBA_APP__);
+    fs.settings({ 
+      host: emulatorHost, 
+      ssl: false,
+      ignoreUndefinedProperties: true
+    });
+    
+    console.log('✅ [FIREBASE-ADMIN] Emulator configured successfully');
+    return global.__FBA_APP__;
   }
-  const db = getFirestore(globalThis.__vv_admin_app__!);
 
-  // Production database configuration
-  // No emulator dependency - always use production Firebase
-  globalThis.__vv_admin_db__ = db;
+  // Production/service account setup
+  if (clientEmail && privateKey) {
+    console.log('🔧 [FIREBASE-ADMIN] Using service account credentials');
+    global.__FBA_APP__ = admin.initializeApp({
+      credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+    });
+  } else {
+    try {
+      console.log('🔧 [FIREBASE-ADMIN] Trying application default credentials');
+      global.__FBA_APP__ = admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+      });
+    } catch (error) {
+      console.log('⚠️ [FIREBASE-ADMIN] ADC failed, trying without credentials');
+      // Last-ditch local dev: initialize without creds (works w/ emulator)
+      global.__FBA_APP__ = admin.initializeApp({
+        projectId,
+      });
+    }
+  }
+
+  return global.__FBA_APP__;
+}
+
+/** Primary Firestore instance */
+export const db = (() => {
+  const app = initAdmin();
+  return admin.firestore(app);
+})();
+
+/** Back-compat for older imports */
+export function getDb() {
   return db;
 }
 
-export function getStorage(): Storage {
-  if (globalThis.__vv_admin_storage__) return globalThis.__vv_admin_storage__!;
-  if (!getApps().length && !globalThis.__vv_admin_app__) {
-    // Use individual environment variables
-    const projectId = need('FIREBASE_PROJECT_ID');
-    const clientEmail = need('FIREBASE_CLIENT_EMAIL');
-    const privateKey = normalizeKey(need('FIREBASE_PRIVATE_KEY'));
-    const app = initializeApp({
-      credential: cert({ projectId, clientEmail, privateKey }),
-      projectId,
-    });
-    globalThis.__vv_admin_app__ = app;
-  }
-  const storage = getFirebaseStorage(globalThis.__vv_admin_app__!);
-  globalThis.__vv_admin_storage__ = storage;
-  return storage;
+/** Optional helpers (used by some routes) */
+export const FieldValue = admin.firestore.FieldValue;
+export const Timestamp = admin.firestore.Timestamp;
+
+/** Storage helper for file uploads */
+export function getStorage() {
+  const app = initAdmin();
+  return admin.storage(app);
 }
+
+export default db;

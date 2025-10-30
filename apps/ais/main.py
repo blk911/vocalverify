@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+﻿from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
@@ -76,8 +76,8 @@ class ChallengeAnswerResponse(BaseModel):
     reasoning: str
 
 # Mock data
-MOCK_NONCES = ["pinecone", "marigold", "driftwood", "tumbleweed", "sourdough", "starlight"]
-MOCK_CHALLENGES = {
+REMOVED_MOCK_NONCES = ["pinecone", "marigold", "driftwood", "tumbleweed", "sourdough", "starlight"]
+REMOVED_MOCK_CHALLENGES = {
     "milestone_count": "Tell me about 3 trips you call your classics.",
     "place_object": "What object became a keepsake from your favorite trip?",
     "sequence": "Describe the route you took in three steps.",
@@ -142,20 +142,20 @@ def check_challenge_answer(transcript: str, expected_tokens: list) -> Dict[str, 
 @app.post("/ais/anticipate", response_model=AnticipateResponse)
 async def anticipate(request: AnticipateRequest):
     """Predict user and return nonce + challenge"""
-    print(f"🔮 [AIS] Anticipate request: {request}")
+    print(f"ðŸ”® [AIS] Anticipate request: {request}")
     
     # Mock delay
     await asyncio.sleep(0.5)
     
     # Pick random nonce
-    nonce = random.choice(MOCK_NONCES)
+    nonce = random_choice_DISABLED(REMOVED_MOCK_NONCES)
     
     # Mock challenge for ASH example
     challenge = {
         "id": f"challenge_{int(time.time())}",
         "tbId": request.tbId,
         "facet": "milestone_count",
-        "prompt": MOCK_CHALLENGES["milestone_count"],
+        "prompt": REMOVED_MOCK_CHALLENGES["milestone_count"],
         "nonce": f"{nonce}-marigold-driftwood",
         "ttlMs": 120000
     }
@@ -172,7 +172,7 @@ async def anticipate(request: AnticipateRequest):
 @app.post("/ais/voice/nonce", response_model=VoiceNonceResponse)
 async def voice_nonce(request: VoiceNonceRequest):
     """Process voice nonce verification"""
-    print(f"🎤 [AIS] Voice nonce request: {request.nonce}")
+    print(f"ðŸŽ¤ [AIS] Voice nonce request: {request.nonce}")
     
     await asyncio.sleep(0.3)
     
@@ -190,13 +190,13 @@ async def voice_nonce(request: VoiceNonceRequest):
 @app.post("/ais/voice/name", response_model=VoiceNameResponse)
 async def voice_name(request: VoiceNameRequest):
     """Extract and verify name from voice"""
-    print(f"👤 [AIS] Voice name request: {request.expected_name}")
+    print(f"ðŸ‘¤ [AIS] Voice name request: {request.expected_name}")
     
     await asyncio.sleep(0.4)
     
     # Mock transcript processing
-    mock_transcript = f"My name is {request.expected_name}"
-    name_match = extract_name_from_transcript(mock_transcript, request.expected_name)
+    REMOVED_MOCK_transcript = f"My name is {request.expected_name}"
+    name_match = extract_name_from_transcript(REMOVED_MOCK_transcript, request.expected_name)
     
     return VoiceNameResponse(
         detected_name=request.expected_name,
@@ -208,12 +208,12 @@ async def voice_name(request: VoiceNameRequest):
 @app.post("/ais/challenge/prebaked", response_model=ChallengePrebakedResponse)
 async def challenge_prebaked(request: ChallengePrebakedRequest):
     """Return pre-baked challenge prompt"""
-    print(f"🎯 [AIS] Challenge prebaked request: {request}")
+    print(f"ðŸŽ¯ [AIS] Challenge prebaked request: {request}")
     
     await asyncio.sleep(0.2)
     
-    prompt = MOCK_CHALLENGES.get(request.facet, "Tell me something only you two would know.")
-    nonce = f"{random.choice(MOCK_NONCES)}-{random.choice(MOCK_NONCES)}"
+    prompt = REMOVED_MOCK_CHALLENGES.get(request.facet, "Tell me something only you two would know.")
+    nonce = f"{random_choice_DISABLED(REMOVED_MOCK_NONCES)}-{random_choice_DISABLED(REMOVED_MOCK_NONCES)}"
     
     return ChallengePrebakedResponse(
         prompt=prompt,
@@ -224,7 +224,7 @@ async def challenge_prebaked(request: ChallengePrebakedRequest):
 @app.post("/ais/challenge/answer", response_model=ChallengeAnswerResponse)
 async def challenge_answer(request: ChallengeAnswerRequest):
     """Validate challenge response"""
-    print(f"✅ [AIS] Challenge answer request: {request.transcript}")
+    print(f"âœ… [AIS] Challenge answer request: {request.transcript}")
     
     await asyncio.sleep(0.6)
     
@@ -250,3 +250,4 @@ async def health():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
+

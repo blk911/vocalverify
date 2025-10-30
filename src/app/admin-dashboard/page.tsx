@@ -46,6 +46,18 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
+      // Clear all state first to prevent fake data
+      setMembers([]);
+      setInviteHistory([]);
+      setNotFoundRegistry([]);
+      setNfArchive([]);
+      setStats({
+        totalMembers: 0,
+        newToday: 0,
+        pendingMembers: 0,
+        registeredMembers: 0,
+      });
+
       // Load system stats
       const statsResponse = await fetch('/api/admin/stats');
       const statsData = await statsResponse.json();
@@ -935,10 +947,10 @@ export default function AdminDashboard() {
                         className='border-b border-gray-200 hover:bg-gray-50'
                       >
                         <td className='py-2 px-3 font-medium text-gray-900'>
-                          {invite.name}
+                          {invite.name || invite.inviteeName || 'N/A'}
                         </td>
                         <td className='py-2 px-3 text-gray-600'>
-                          {invite.phone}
+                          {invite.phone || invite.inviteeEmail?.replace('@temp.amihuman.net', '') || 'N/A'}
                         </td>
                         <td className='py-2 px-3 text-gray-600'>
                           {invite.sponsorName}
@@ -1143,9 +1155,6 @@ export default function AdminDashboard() {
         />
       </aside>
       <main id="admin-main">
-        <div className="admin-hero">
-          <img src="/amihuman-bkgrnd.png" alt="" />
-        </div>
         <div className='max-w-7xl mx-auto'>{renderSectionContent()}</div>
       </main>
 

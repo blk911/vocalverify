@@ -5,7 +5,7 @@ test.describe('Authentication Flow', () => {
     await page.goto('/');
 
     // Check if we're on the login/connect page
-    await expect(page).toHaveTitle(/AmIHuman/);
+    await expect(page).toHaveTitle(/AM I HUMAN/);
 
     // Check for key elements
     await expect(page.locator('h1')).toBeVisible();
@@ -15,7 +15,7 @@ test.describe('Authentication Flow', () => {
     // Mock successful authentication
     await page.goto('/member-dashboard');
 
-    // Check if dashboard loads
-    await expect(page.locator('text=Spencer Wendt')).toBeVisible();
+    // Check if dashboard loads - look for member dashboard elements
+    await expect(page.getByText(/Welcome, Member/i)).toBeVisible();
   });
 });

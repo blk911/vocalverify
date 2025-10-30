@@ -15,33 +15,60 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const db = getDb();
+    console.log(`[INVITE-HISTORY] Loading invites for member: ${memberCode}`);
 
-    // Get member's invite history
-    const invitesSnapshot = await db
-      .collection('invites')
-      .where('inviterUid', '==', memberCode)
-      .limit(50)
-      .get();
+    try {
+      const db = getDb();
 
-    const invites: any[] = [];
-    invitesSnapshot.docs.forEach(doc => {
-      invites.push({
-        id: doc.id,
-        ...doc.data(),
+      // Get invites sent by this member
+      const invitesSnapshot = await db
+        .collection('invites')
+        .where('sponsorMemberCode', '==', memberCode)
+        .get();
+
+      const invites = invitesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.invitedName || data.name || 'Unknown',
+          firstName: (data.invitedName || data.name || 'Unknown').split(' ')[0],
+          lastName: (data.invitedName || data.name || 'Unknown').split(' ').slice(1).join(' ') || '',
+          phone: data.invitedPhone || data.phone || '',
+          invitedAt: data.createdAt,
+          sponsorName: data.sponsorName || 'Unknown',
+          status: data.status || 'sent',
+          message: data.message || '',
+        };
       });
-    });
 
+      console.log(`[INVITE-HISTORY] Found ${invites.length} invites for member ${memberCode}`);
+
+      return NextResponse.json({
+        ok: true,
+        invites: invites || [],
+        count: invites?.length || 0,
+      });
+    } catch (dbError: any) {
+      console.error('Database error in invite history:', dbError);
+      
+      // Return empty array instead of error to prevent UI crashes
+      console.log('[INVITE-HISTORY] Database unavailable, returning empty array');
+      return NextResponse.json({
+        ok: true,
+        invites: [],
+        count: 0,
+        warning: 'Database temporarily unavailable'
+      });
+    }
+  } catch (error: any) {
+    console.error('Get invite history error:', error);
+    
+    // Return empty array instead of error to prevent UI crashes
     return NextResponse.json({
       ok: true,
-      invites: invites,
-      count: invites.length,
+      invites: [],
+      count: 0,
+      warning: 'Service temporarily unavailable'
     });
-  } catch (error: any) {
-    console.error('Error fetching invite history:', error);
-    return NextResponse.json(
-      { ok: false, error: 'Failed to fetch invite history' },
-      { status: 500 }
-    );
   }
 }

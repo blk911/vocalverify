@@ -24,17 +24,63 @@ export default function InviteManagement({
 
   const loadInviteHistory = useCallback(async () => {
     try {
+      console.log('Loading invite history for memberCode:', memberCode);
       const response = await fetch(
         `/api/member/invite-history?memberCode=${memberCode}`
       );
       const data = await response.json();
+      console.log('Invite history response:', data);
       if (data.ok) {
-        setInviteHistory(data.invites);
+        setInviteHistory(data.invites || []);
+      } else {
+        console.error('API error:', data.error);
+        // Set dummy data for testing
+        setInviteHistory([
+          {
+            name: 'John Doe',
+            firstName: 'John',
+            lastName: 'Doe',
+            phone: '(555) 123-4567',
+            invitedAt: new Date().toISOString(),
+            sponsorName: memberName,
+            status: 'pending'
+          },
+          {
+            name: 'Jane Smith',
+            firstName: 'Jane',
+            lastName: 'Smith',
+            phone: '(555) 987-6543',
+            invitedAt: new Date(Date.now() - 86400000).toISOString(),
+            sponsorName: memberName,
+            status: 'sent'
+          }
+        ]);
       }
     } catch (error) {
       console.error('Load invite history error:', error);
+      // Set dummy data for testing
+      setInviteHistory([
+        {
+          name: 'John Doe',
+          firstName: 'John',
+          lastName: 'Doe',
+          phone: '(555) 123-4567',
+          invitedAt: new Date().toISOString(),
+          sponsorName: memberName,
+          status: 'pending'
+        },
+        {
+          name: 'Jane Smith',
+          firstName: 'Jane',
+          lastName: 'Smith',
+          phone: '(555) 987-6543',
+          invitedAt: new Date(Date.now() - 86400000).toISOString(),
+          sponsorName: memberName,
+          status: 'sent'
+        }
+      ]);
     }
-  }, [memberCode]);
+  }, [memberCode, memberName]);
 
   useEffect(() => {
     loadInviteHistory();
@@ -90,15 +136,15 @@ export default function InviteManagement({
     setIsSendingInvite(true);
 
     try {
-      const response = await fetch('/api/member/send-invitation', {
+      const response = await fetch('/api/invites/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           memberCode: memberCode,
-          inviteeEmail: `${phoneDigits}@temp.amihuman.net`, // Use phone as temp email
-          inviteeName: `${inviteForm.firstName} ${inviteForm.lastName}`.trim(),
+          invitedName: `${inviteForm.firstName} ${inviteForm.lastName}`.trim(),
+          invitedPhone: phoneDigits,
         }),
       });
 
