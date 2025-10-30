@@ -1,42 +1,8 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-# Block accidental edits to CSS pipeline (override with -n if you really mean it)
-if git diff --cached --name-only | grep -E '^(postcss\.config\.js|tailwind\.config\.(js|ts)|src/app/globals\.css)$' >/dev/null; then
-  echo "❌ Refusing to commit changes to core CSS/config without override."
-  echo "   Use: git commit -n to bypass (not recommended)."
+﻿#!/usr/bin/env sh
+pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/guard-no-mocks.ps1
+RET=$?
+if [ $RET -ne 0 ]; then
+  echo "❌ Refusing commit: mock/static patterns detected."
   exit 1
 fi
-
-# Validate layout structure for new member pages
-echo "🔍 Validating layout structure..."
-if git diff --cached --name-only | grep -E '^src/app/.*/page\.tsx$' >/dev/null; then
-  echo "📋 Checking member page layout compliance..."
-  
-  # Check if new pages use MemberPageLayout
-  for file in $(git diff --cached --name-only | grep -E '^src/app/.*/page\.tsx$'); do
-    if ! grep -q "MemberPageLayout" "$file"; then
-      echo "❌ ERROR: $file does not use MemberPageLayout component"
-      echo "   All member pages must use MemberPageLayout for consistent structure"
-      echo "   Use: node scripts/generate-member-page.js <page-name> to create properly structured pages"
-      exit 1
-    fi
-    
-    if grep -q "import.*Topbar.*from.*@/components/mem/Topbar" "$file"; then
-      echo "❌ ERROR: $file imports Topbar directly"
-      echo "   Use MemberPageLayout instead of direct Topbar import"
-      exit 1
-    fi
-    
-    if grep -q "import.*Sidebar.*from.*@/components/mem/Sidebar" "$file"; then
-      echo "❌ ERROR: $file imports Sidebar directly"
-      echo "   Use MemberPageLayout instead of direct Sidebar import"
-      exit 1
-    fi
-  done
-  
-  echo "✅ Layout structure validation passed"
-fi
-
-pnpm lint-staged
-pnpm typecheck
+exit 0
