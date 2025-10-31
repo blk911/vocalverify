@@ -1,8 +1,8 @@
-﻿#!/usr/bin/env sh
+#!/usr/bin/env sh
 pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/guard-no-mocks.ps1
 RET=$?
 if [ $RET -ne 0 ]; then
-  echo "❌ Refusing commit: mock/static patterns detected."
+  echo "? Refusing commit: mock/static patterns detected."
   exit 1
 fi
 exit 0

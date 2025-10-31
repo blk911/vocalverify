@@ -1,0 +1,29 @@
+﻿<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Snapshot</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 16px; }
+      .row { margin: 8px 0; }
+      button { padding: 6px 12px; margin-right: 8px; }
+      .muted { color: #666; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="q" class="row">Commit &amp; push now?</div>
+    <div id="meta" class="row muted"></div>
+    <div class="row">
+      <button id="yes">Yes</button>
+      <button id="no">No</button>
+    </div>
+    <script>
+      window.trayAPI.init((p) => {
+        document.getElementById('q').innerText = p.question || 'Commit & push now?';
+        document.getElementById('meta').innerText = `Branch: ${p.branch} • Timeout: ${p.timeoutSec}s`;
+        document.getElementById('yes').onclick = () => window.trayAPI.decide(p.id, 'Yes');
+        document.getElementById('no').onclick  = () => window.trayAPI.decide(p.id, 'No');
+      });
+    </script>
+  </body>
+</html>

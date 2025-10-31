@@ -27,7 +27,8 @@
     "validate:full": "npm run lint && npm run type-check && npm run test && npm run build && npm run audit",
     "pre-commit": "npm run validate",
     "error-check": "npm run validate && echo '✅ All validations passed'",
-    "quality": "npm run validate:full"
+    "quality": "npm run validate:full",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

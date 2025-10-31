@@ -1,0 +1,6 @@
+﻿[2025-10-30T13:16:43] STEP: Ensuring dev server is running at http://localhost:3000
+[2025-10-30T13:16:47] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-30T13:16:47] OK: Dev server is online.
+[2025-10-30T13:16:47] STEP: Ping core routes
+[2025-10-30T13:16:51] HTTP ERROR GET http://localhost:3000/ :: Unable to connect to the remote server
+[2025-10-30T13:16:51] FAIL: GET / failed

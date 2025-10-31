@@ -1,0 +1,8 @@
+﻿[2025-10-30T11:02:25] STEP: Ensuring dev server is running at http://localhost:3000
+[2025-10-30T11:02:29] HTTP ERROR GET http://localhost:3000/api/health :: Unable to connect to the remote server
+[2025-10-30T11:02:29] OK: Dev server is online.
+[2025-10-30T11:02:29] STEP: Ping core routes
+[2025-10-30T11:02:33] HTTP ERROR GET http://localhost:3000/ :: Unable to connect to the remote server
+[2025-10-30T11:02:33] FAIL: GET / failed
+[2025-10-30T11:02:37] HTTP ERROR GET http://localhost:3000/member-dashboard?memberCode=demo :: Unable to connect to the remote server
+[2025-10-30T11:02:37] FAIL: GET /member-dashboard?memberCode=demo failed
